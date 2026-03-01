@@ -4,7 +4,7 @@
 # Multi-stage build: backend + frontend
 
 # Stage 1: Build Go backend
-FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
 ARG TARGETARCH
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -30,6 +30,6 @@ COPY docker-compose.yaml .
 COPY metadata.json .
 COPY docker.svg .
 
-# TODO: Add frontend build stage and copy ui assets
+COPY ui ui
 
 CMD ["/backend", "-socket", "/run/guest-services/backend.sock"]
