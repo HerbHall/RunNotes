@@ -39,7 +39,7 @@ Docker Desktop extension for attaching notes and annotations to containers.
 
 - **CI workflow**: `.github/workflows/lint.yml` — Markdown lint, Dockerfile lint, Go test, Go lint
 - **Go test**: `go test -race ./...` on Linux CI runner
-- **Go lint**: `golangci-lint-action@v7` with `v2.1.6`
+- **Go lint**: `golangci-lint-action@v7` with `v2.10.1`
 - **Markdown lint**: `markdownlint-cli2` on all `**/*.md` files
 - **Dockerfile lint**: `hadolint` on `Dockerfile`
 - **hadolint config**: `.hadolint.yaml` ignores DL3048 (vendor labels) and DL3045 (COPY without WORKDIR) — standard Docker extension patterns
