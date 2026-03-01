@@ -27,7 +27,15 @@ A Go service running inside the Docker Desktop VM. Handles:
 - SQLite storage management
 - Container name/ID resolution
 
-Communication between frontend and backend uses the Extensions SDK socket/named-pipe mechanism (not HTTP ports), avoiding port collisions with host applications.
+Communication between frontend and backend uses the Extensions SDK socket mechanism. The backend listens on `/run/guest-services/backend.sock` inside the Docker Desktop VM. The frontend calls via `ddClient.extension.vm.service.get/post/put/delete` — no HTTP ports are exposed, avoiding port collisions with host applications.
+
+**API Routes**:
+
+- `GET /notes` — List all notes (optional `?pinned=true` and `?search=term`)
+- `GET /notes/{name}` — Get note by container name
+- `POST /notes` — Create a new note
+- `PUT /notes/{name}` — Update note (PATCH semantics)
+- `DELETE /notes/{name}` — Delete note
 
 ### Storage Design
 
@@ -48,9 +56,12 @@ See [DATA_MODEL.md](DATA_MODEL.md) for the full schema definition, Go backend ty
 
 The `metadata.json` file defines the extension for Docker Desktop:
 
-- `ui.dashboard-tab` — Registers the RunNotes tab
-- `vm.image` — Backend service image
+- `ui.dashboard-tab` — Registers the RunNotes tab in Docker Desktop's sidebar
+- `vm.composefile` — References `docker-compose.yaml` for the backend VM service (enables Docker volume mounts for SQLite persistence)
+- `vm.exposes.socket` — Exposes `backend.sock` for frontend-to-backend communication
 - `host.binaries` — Optional host-side executables (for data export)
+
+The `docker-compose.yaml` defines the backend service with a named volume (`runnotes-data`) mounted at `/data` for SQLite database persistence across Docker Desktop restarts.
 
 ## Constraints
 

@@ -6,7 +6,23 @@ BUILDER=buildx-multi-arch
 INFO_COLOR = \033[0;36m
 RESET = \033[0m
 
-.PHONY: build-extension install-extension update-extension clean
+.PHONY: test lint build-backend dev-backend cross-check build-extension install-extension update-extension clean
+
+test: ## Run Go tests
+	go test ./...
+
+lint: ## Run Go linter
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
+
+build-backend: ## Build backend binary (local arch)
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/backend ./cmd/backend
+
+dev-backend: ## Run backend in dev mode (TCP :3001)
+	ENV_MODE=dev go run ./cmd/backend
+
+cross-check: ## Verify cross-compilation for linux/amd64 and linux/arm64
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/backend
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o /dev/null ./cmd/backend
 
 build-extension:
 	docker build --tag=$(IMAGE):$(TAG) .

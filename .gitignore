@@ -6,6 +6,11 @@ vendor/
 build/
 dist/
 bin/
+/backend
+/backend.exe
+*.db
+*.db-wal
+*.db-shm
 
 # Docker extension build artifacts
 *.tar

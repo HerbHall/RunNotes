@@ -82,7 +82,7 @@ The `container_id` field serves two purposes:
 
 ## Go Backend Types
 
-These structs will live in `backend/internal/models/note.go` when the backend is scaffolded (Issue #3).
+These structs live in `internal/models/note.go`.
 
 ```go
 package models
@@ -132,7 +132,7 @@ type UpdateNoteRequest struct {
 
 ## TypeScript Frontend Types
 
-These interfaces will live in `ui/src/types.ts` when the frontend is scaffolded (Issue #2).
+These interfaces will live in `ui/src/types.ts` when the frontend is scaffolded (issue #2).
 
 ```typescript
 /** A user-authored annotation attached to a Docker container. */

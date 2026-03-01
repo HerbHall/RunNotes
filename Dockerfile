@@ -3,6 +3,17 @@
 # RunNotes Docker Desktop Extension
 # Multi-stage build: backend + frontend
 
+# Stage 1: Build Go backend
+FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
+ARG TARGETARCH
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd/ cmd/
+COPY internal/ internal/
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o bin/backend ./cmd/backend
+
+# Stage 2: Final extension image
 FROM alpine:3.21
 LABEL org.opencontainers.image.title="RunNotes" \
       org.opencontainers.image.description="Attach notes and annotations to your Docker containers" \
@@ -14,8 +25,11 @@ LABEL org.opencontainers.image.title="RunNotes" \
       com.docker.extension.publisher-url="https://github.com/HerbHall" \
       com.docker.extension.changelog=""
 
-# TODO: Add backend build stage
-# TODO: Add frontend build stage
-# TODO: Copy ui assets
-
+COPY --from=builder /app/bin/backend /backend
+COPY docker-compose.yaml .
 COPY metadata.json .
+COPY docker.svg .
+
+# TODO: Add frontend build stage and copy ui assets
+
+CMD ["/backend", "-socket", "/run/guest-services/backend.sock"]

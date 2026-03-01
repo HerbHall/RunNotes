@@ -1,0 +1,8 @@
+services:
+  runnotes:
+    image: ${DESKTOP_PLUGIN_IMAGE}
+    volumes:
+      - runnotes-data:/data
+
+volumes:
+  runnotes-data:
