@@ -3,7 +3,7 @@
 # RunNotes Docker Desktop Extension
 # Multi-stage build: backend + frontend
 
-FROM alpine
+FROM alpine:3.21
 LABEL org.opencontainers.image.title="RunNotes" \
       org.opencontainers.image.description="Attach notes and annotations to your Docker containers" \
       org.opencontainers.image.vendor="Herb Hall" \

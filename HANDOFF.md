@@ -60,6 +60,7 @@ cmd /c "D:\devspace\RunNotes\create-issues.bat"
 ```
 
 This creates 10 issues covering the full backlog:
+
 1. Data model design (mvp)
 2. React UI — container list + note editor (mvp)
 3. Backend service — storage API (mvp)
@@ -102,6 +103,7 @@ Don't create these empty — they should be scaffolded when development begins.
 ### 5. Metadata.json Enhancements
 
 Current `metadata.json` is minimal. When development starts, add:
+
 - `com.docker.desktop.extension.api.version` (already in Dockerfile labels, should also be validated)
 - Consider adding a `compose.yaml` for the VM service if it needs volume mounts
 
@@ -136,6 +138,7 @@ These are settled from the research phase — don't revisit:
 ## Name Research
 
 "RunNotes" was chosen after research confirmed:
+
 - No Docker CLI command or concept named "runnotes"
 - No existing Docker extension using this name
 - The name "Manifest" was considered first but rejected — `docker manifest` is a core Docker CLI command AND there's already a Docker Desktop extension called "Manifest" (memory metrics tool by oslabs-beta)
