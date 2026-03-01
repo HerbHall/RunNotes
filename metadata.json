@@ -8,7 +8,10 @@
     }
   },
   "vm": {
-    "image": "${DESKTOP_PLUGIN_IMAGE}"
+    "composefile": "docker-compose.yaml",
+    "exposes": {
+      "socket": "backend.sock"
+    }
   },
   "host": {
     "binaries": []

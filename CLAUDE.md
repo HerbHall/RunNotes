@@ -5,8 +5,9 @@ Docker Desktop extension for attaching notes and annotations to containers.
 ## Tech Stack
 
 - **Frontend**: React + Material UI (Docker Desktop extension standard)
-- **Backend**: Go service running in Desktop VM (pure-Go SQLite, single binary)
+- **Backend**: Go + `modernc.org/sqlite` (pure Go, no CGO) running in Desktop VM
 - **Storage**: SQLite on Docker volume (see [docs/DATA_MODEL.md](docs/DATA_MODEL.md))
+- **Migrations**: Goose v3 with `go:embed` (baked into binary)
 - **Build**: Docker Extensions CLI + Makefile
 - **Platform**: Docker Desktop 4.8.0+ (Windows, Mac, Linux)
 
@@ -24,10 +25,23 @@ Docker Desktop extension for attaching notes and annotations to containers.
 - Issues track all work; PRs reference issue numbers
 - PowerShell is the primary scripting shell on Windows
 
+## Build Commands
+
+- `make test` — Run Go tests
+- `make lint` — Run golangci-lint
+- `make build-backend` — Build backend binary (local arch)
+- `make dev-backend` — Run backend in dev mode (TCP :3001)
+- `make cross-check` — Verify cross-compilation for linux/amd64 and linux/arm64
+- `make build-extension` — Build Docker extension image
+- `make install-extension` — Install extension into Docker Desktop
+
 ## CI and Linting
 
-- **Markdown lint**: `.github/workflows/lint.yml` runs `markdownlint-cli2` on all `**/*.md` files
-- **Dockerfile lint**: Same workflow runs `hadolint` on `Dockerfile`
+- **CI workflow**: `.github/workflows/lint.yml` — Markdown lint, Dockerfile lint, Go test, Go lint
+- **Go test**: `go test -race ./...` on Linux CI runner
+- **Go lint**: `golangci-lint-action@v7` with `v2.10.1`
+- **Markdown lint**: `markdownlint-cli2` on all `**/*.md` files
+- **Dockerfile lint**: `hadolint` on `Dockerfile`
 - **hadolint config**: `.hadolint.yaml` ignores DL3048 (vendor labels) and DL3045 (COPY without WORKDIR) — standard Docker extension patterns
 - **markdownlint config**: `.markdownlint.json` at project root (overrides DevSpace parent)
 - **VERSION file**: Contains semver string (`0.1.0`), used by Makefile and metadata
@@ -40,19 +54,19 @@ Development follows a 5-phase plan with research, implementation, and gate issue
 
 ```text
 RunNotes/
-├── .github/workflows/   - CI workflows (lint.yml)
-├── .hadolint.yaml       - Hadolint config for Dockerfile linting
-├── .markdownlint.json   - Markdownlint config
-├── docs/                - Architecture docs, data model, feasibility research
-├── ui/                  - React frontend (scaffold when starting Phase 2)
-├── backend/             - Go backend service (scaffold when starting Phase 1)
-├── metadata.json        - Extension metadata
-├── Dockerfile           - Extension image
-├── Makefile             - Build targets
-├── VERSION              - Semver version string
-├── CLAUDE.md            - Project context for Claude Code
-├── HANDOFF.md           - Claude Code handoff notes
-├── CONTRIBUTING.md      - Contribution guidelines
-├── CHANGELOG.md         - Keep-a-Changelog format
-└── README.md            - Project overview
+├── cmd/backend/         - Go entry point (main.go)
+├── internal/
+│   ├── database/        - SQLite open, PRAGMAs, Goose migrations
+│   ├── handler/         - HTTP handlers for note CRUD
+│   ├── models/          - Note, CreateNoteRequest, UpdateNoteRequest
+│   └── store/           - NoteStore data access layer
+├── .github/workflows/   - CI workflow (lint, test, build)
+├── docs/                - Architecture, data model, feasibility
+├── ui/                  - React frontend (Phase 2)
+├── go.mod / go.sum      - Go module definition
+├── docker-compose.yaml  - VM service with volume mount
+├── metadata.json        - Extension metadata (composefile pattern)
+├── Dockerfile           - Multi-stage: Go builder + Alpine final
+├── Makefile             - Build, test, lint, dev targets
+└── VERSION              - Semver version string (0.1.0)
 ```
