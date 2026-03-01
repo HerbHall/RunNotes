@@ -1,0 +1,16 @@
+{
+  "icon": "docker.svg",
+  "ui": {
+    "dashboard-tab": {
+      "title": "RunNotes",
+      "root": "/ui",
+      "src": "index.html"
+    }
+  },
+  "vm": {
+    "image": "${DESKTOP_PLUGIN_IMAGE}"
+  },
+  "host": {
+    "binaries": []
+  }
+}

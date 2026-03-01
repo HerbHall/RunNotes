@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+build/
+dist/
+bin/
+
+# Docker extension build artifacts
+*.tar
+
+# Environment
+.env
+.env.*
+
+# OS
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# Editor
+.vs/
+.idea/
+*.swp
+*.swo
+.vscode/
+
+# Claude Code runtime
+CLAUDE.local.md
+*.local.md
