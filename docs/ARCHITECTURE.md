@@ -74,3 +74,7 @@ The `metadata.json` file defines the extension for Docker Desktop:
 - Multi-arch support required: `linux/amd64` and `linux/arm64` minimum
 - Extensions are distributed as Docker images via Docker Hub
 - No native Windows container support in the extension framework
+
+## References
+
+- [Docker Extensions SDK](https://www.docker.com/developers/sdk/)

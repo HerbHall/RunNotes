@@ -26,6 +26,12 @@ Desktop.ini
 *.swo
 .vscode/
 
-# Claude Code runtime
+# Claude Code
+.claude/
 CLAUDE.local.md
 *.local.md
+
+# One-time setup artifacts
+.issuebody
+.body
+create-issues.bat
