@@ -1,0 +1,7 @@
+---
+# Hadolint configuration for Docker Desktop Extension
+# DL3048: Docker extension labels use vendor-specific keys (com.docker.*)
+# DL3045: Extension Dockerfiles use COPY without WORKDIR (standard pattern)
+ignored:
+  - DL3048
+  - DL3045
