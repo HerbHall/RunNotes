@@ -24,14 +24,35 @@ Docker Desktop extension for attaching notes and annotations to containers.
 - Issues track all work; PRs reference issue numbers
 - PowerShell is the primary scripting shell on Windows
 
+## CI and Linting
+
+- **Markdown lint**: `.github/workflows/lint.yml` runs `markdownlint-cli2` on all `**/*.md` files
+- **Dockerfile lint**: Same workflow runs `hadolint` on `Dockerfile`
+- **hadolint config**: `.hadolint.yaml` ignores DL3048 (vendor labels) and DL3045 (COPY without WORKDIR) — standard Docker extension patterns
+- **markdownlint config**: `.markdownlint.json` at project root (overrides DevSpace parent)
+- **VERSION file**: Contains semver string (`0.1.0`), used by Makefile and metadata
+
+## Phased Roadmap
+
+Development follows a 5-phase plan with research, implementation, and gate issues at each phase. See GitHub issues for the full backlog. Phases: Backend (1) -> Frontend (2) -> Lifecycle (3) -> Enhancements (4) -> Ship (5).
+
 ## File Layout
 
 ```text
 RunNotes/
-├── docs/                - Architecture docs, feasibility research
-├── ui/                  - React frontend
-├── backend/             - Backend service
+├── .github/workflows/   - CI workflows (lint.yml)
+├── .hadolint.yaml       - Hadolint config for Dockerfile linting
+├── .markdownlint.json   - Markdownlint config
+├── docs/                - Architecture docs, data model, feasibility research
+├── ui/                  - React frontend (scaffold when starting Phase 2)
+├── backend/             - Go backend service (scaffold when starting Phase 1)
 ├── metadata.json        - Extension metadata
 ├── Dockerfile           - Extension image
-└── Makefile             - Build targets
+├── Makefile             - Build targets
+├── VERSION              - Semver version string
+├── CLAUDE.md            - Project context for Claude Code
+├── HANDOFF.md           - Claude Code handoff notes
+├── CONTRIBUTING.md      - Contribution guidelines
+├── CHANGELOG.md         - Keep-a-Changelog format
+└── README.md            - Project overview
 ```

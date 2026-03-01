@@ -16,6 +16,6 @@ LABEL org.opencontainers.image.title="RunNotes" \
 
 # TODO: Add backend build stage
 # TODO: Add frontend build stage
-# TODO: Copy metadata.json and ui assets
+# TODO: Copy ui assets
 
 COPY metadata.json .

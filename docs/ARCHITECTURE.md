@@ -21,10 +21,10 @@ The frontend uses React with Material UI to match Docker Desktop's native look a
 
 ### Backend (VM Service)
 
-A lightweight service running inside the Docker Desktop VM. Handles:
+A Go service running inside the Docker Desktop VM. Handles:
 
 - CRUD operations for notes
-- Storage management (SQLite or JSON)
+- SQLite storage management
 - Container name/ID resolution
 
 Communication between frontend and backend uses the Extensions SDK socket/named-pipe mechanism (not HTTP ports), avoiding port collisions with host applications.
@@ -38,27 +38,11 @@ Notes are stored with a dual-key system:
 
 This design ensures notes survive container recreation (`docker-compose down && up`), which is the most common workflow. When a container is recreated with the same name, its notes carry over automatically.
 
-Storage options under consideration:
+Storage uses **SQLite** — reliable, supports querying, single-file database. The database resides on a Docker volume mounted to the backend container, persisting across Docker Desktop restarts.
 
-- **SQLite** — Reliable, supports querying, single-file database
-- **JSON file** — Simpler, human-readable, no dependencies
+### Data Model
 
-Storage resides on a Docker volume mounted to the backend container. This volume persists across Docker Desktop restarts.
-
-### Data Model (Draft)
-
-```json
-{
-  "container_name": "my-postgres",
-  "container_id": "a1b2c3d4e5f6",
-  "compose_project": "myapp",
-  "compose_service": "db",
-  "note_content": "Production replica for testing migration scripts...",
-  "created_at": "2026-02-28T12:00:00Z",
-  "updated_at": "2026-02-28T14:30:00Z",
-  "tags": ["database", "testing"]
-}
-```
+See [DATA_MODEL.md](DATA_MODEL.md) for the full schema definition, Go backend types, and TypeScript frontend types.
 
 ## Extension Metadata
 
