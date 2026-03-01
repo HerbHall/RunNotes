@@ -85,8 +85,9 @@ cmd /c "gh label create chore --color FBCA04 --description "Maintenance task" --
 
 These exist in DevKit but not RunNotes:
 
-- `.markdownlint.json` — Copy from `D:\devspace\.markdownlint.json`
-- `.github/workflows/lint.yml` — Basic CI (markdownlint, dockerfile lint)
+- ✅ `.markdownlint.json` — Created (PR #11)
+- ✅ `.github/workflows/lint.yml` — Created with markdown lint + Dockerfile lint (PR #11)
+- ✅ `.hadolint.yaml` — Created for Docker extension lint rules (PR #11)
 - `METHODOLOGY.md` — Optional, only if project methodology needs documenting
 
 ### 4. Source Directories (Not Yet Created)
@@ -104,7 +105,7 @@ Don't create these empty — they should be scaffolded when development begins.
 
 Current `metadata.json` is minimal. When development starts, add:
 
-- `com.docker.desktop.extension.api.version` (already in Dockerfile labels, should also be validated)
+- ✅ `com.docker.desktop.extension.api.version` — Already in Dockerfile labels (line 10)
 - Consider adding a `compose.yaml` for the VM service if it needs volume mounts
 
 ### 6. VS Code Workspace File

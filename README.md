@@ -16,14 +16,14 @@ Docker Desktop shows container name, image, status, ports, and logs — but ther
 
 ## Status
 
-🚧 **Pre-development** — Architecture and planning phase.
+🔨 **Designing & Planning** — Architecture complete, data model defined, phased roadmap active.
 
 ## Architecture
 
 RunNotes is a Docker Desktop extension with three components:
 
 - **Frontend** — React UI tab in Docker Desktop (Material UI to match DD's look)
-- **Backend** — Lightweight service running in the Desktop VM (SQLite or JSON storage)
+- **Backend** — Go service running in the Desktop VM (SQLite storage)
 - **Host binary** — Optional, for host-side data persistence
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full technical details.
