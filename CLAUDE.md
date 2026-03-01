@@ -5,8 +5,8 @@ Docker Desktop extension for attaching notes and annotations to containers.
 ## Tech Stack
 
 - **Frontend**: React + Material UI (Docker Desktop extension standard)
-- **Backend**: TBD — Node.js or Go service running in Desktop VM
-- **Storage**: SQLite or JSON file on mounted volume
+- **Backend**: Go service running in Desktop VM (pure-Go SQLite, single binary)
+- **Storage**: SQLite on Docker volume (see [docs/DATA_MODEL.md](docs/DATA_MODEL.md))
 - **Build**: Docker Extensions CLI + Makefile
 - **Platform**: Docker Desktop 4.8.0+ (Windows, Mac, Linux)
 
