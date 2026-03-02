@@ -8,6 +8,7 @@ import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { ContainerList } from "./components/ContainerList";
+import { ExportImportButtons } from "./components/ExportImportButtons";
 import { NoteEditor } from "./components/NoteEditor";
 import { SearchBar } from "./components/SearchBar";
 import { useContainers } from "./hooks/useContainers";
@@ -120,6 +121,7 @@ export default function App() {
         <Typography variant="h6" sx={{ flexShrink: 0 }}>
           RunNotes
         </Typography>
+        <ExportImportButtons onRefresh={handleRefresh} />
         <Box sx={{ flex: 1 }} />
         <SearchBar value={search} onChange={setSearch} />
         <Tooltip title={pinFilter ? "Show all containers" : "Show pinned only"}>

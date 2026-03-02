@@ -237,3 +237,84 @@ func TestHandleDeleteNote_NotFound(t *testing.T) {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
 	}
 }
+
+func TestHandleExportNotes(t *testing.T) {
+	_, mux := newTestHandler(t)
+
+	createNote(t, mux, models.CreateNoteRequest{ContainerName: "x", NoteContent: "one"})
+	createNote(t, mux, models.CreateNoteRequest{ContainerName: "y", NoteContent: "two"})
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/notes/export", http.NoBody)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var notes []models.Note
+	if err := json.NewDecoder(w.Body).Decode(&notes); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(notes) != 2 {
+		t.Errorf("len = %d, want 2", len(notes))
+	}
+}
+
+func TestHandleExportNotes_Empty(t *testing.T) {
+	_, mux := newTestHandler(t)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/notes/export", http.NoBody)
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+
+	var notes []models.Note
+	if err := json.NewDecoder(w.Body).Decode(&notes); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(notes) != 0 {
+		t.Errorf("len = %d, want 0", len(notes))
+	}
+}
+
+func TestHandleImportNotes(t *testing.T) {
+	_, mux := newTestHandler(t)
+
+	payload := []models.Note{
+		{ContainerName: "svc-a", NoteContent: "alpha", Tags: []string{"a"}},
+		{ContainerName: "svc-b", NoteContent: "beta"},
+	}
+	body, _ := json.Marshal(payload)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/notes/import", bytes.NewReader(body))
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var result map[string]int
+	if err := json.NewDecoder(w.Body).Decode(&result); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if result["imported"] != 2 {
+		t.Errorf("imported = %d, want 2", result["imported"])
+	}
+}
+
+func TestHandleImportNotes_InvalidJSON(t *testing.T) {
+	_, mux := newTestHandler(t)
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/notes/import", bytes.NewReader([]byte("not-json")))
+	mux.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
