@@ -17,9 +17,19 @@ Docker Desktop shows container name, image, status, ports, and logs — but ther
 - **Orphan management** — Detect and clean up notes for containers that no longer exist
 - **Export/Import** — Back up all notes as JSON, restore from backup
 
+## Installation
+
+```bash
+docker extension install herbhall/runnotes
+```
+
+Or find **RunNotes** in the Docker Desktop Extensions Marketplace.
+
+**Requires**: Docker Desktop 4.8.0+ with Extensions enabled.
+
 ## Status
 
-**In Development** — Feature-complete with container notes, markdown, search, export/import, and lifecycle management.
+**v0.1.0** — Feature-complete with container notes, markdown, search, export/import, and lifecycle management.
 
 ## Architecture
 

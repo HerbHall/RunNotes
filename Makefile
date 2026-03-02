@@ -1,5 +1,6 @@
+VERSION := $(shell cat VERSION)
 IMAGE ?= herbhall/runnotes
-TAG ?= latest
+TAG ?= $(VERSION)
 
 BUILDER=buildx-multi-arch
 
@@ -43,6 +44,11 @@ push-extension:
 	docker buildx create --name=$(BUILDER) || true
 	docker buildx use $(BUILDER)
 	docker buildx build --push --platform=linux/amd64,linux/arm64 --tag=$(IMAGE):$(TAG) .
+
+release: ## Build, push multi-arch image with version tag and latest
+	docker buildx create --name=$(BUILDER) || true
+	docker buildx use $(BUILDER)
+	docker buildx build --push --platform=linux/amd64,linux/arm64 --tag=$(IMAGE):$(TAG) --tag=$(IMAGE):latest .
 
 clean:
 	docker extension rm $(IMAGE) || true
