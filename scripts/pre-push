@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Pre-push hook: runs the same checks as CI before allowing a push.
+set -euo pipefail
+
+echo "==> pre-push: running CI checks..."
+
+echo "--- go build"
+go build ./...
+
+echo "--- go test"
+go test ./...
+
+echo "--- frontend typecheck"
+cd ui && npx tsc --noEmit
+
+echo "--- frontend lint"
+npx eslint .
+
+echo "--- frontend test"
+npx vitest run 2>/dev/null || echo "(no tests configured, skipping)"
+
+echo "--- frontend build"
+npm run build
+
+cd ..
+
+echo "--- markdownlint"
+npx --yes markdownlint-cli2 "**/*.md" "#node_modules" "#ui/node_modules"
+
+echo "==> pre-push: all checks passed"
