@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -7,9 +8,11 @@ import Typography from "@mui/material/Typography";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { ContainerList } from "./components/ContainerList";
 import { ExportImportButtons } from "./components/ExportImportButtons";
 import { NoteEditor } from "./components/NoteEditor";
+import { OrphanedNotesDialog } from "./components/OrphanedNotesDialog";
 import { SearchBar } from "./components/SearchBar";
 import { useContainers } from "./hooks/useContainers";
 import { useNotes } from "./hooks/useNotes";
@@ -64,6 +67,15 @@ export default function App() {
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [pinFilter, setPinFilter] = useState(false);
+  const [orphanDialogOpen, setOrphanDialogOpen] = useState(false);
+
+  const orphanedNotes = useMemo(
+    () =>
+      notes.filter(
+        (n) => !containers.some((c) => c.name === n.container_name),
+      ),
+    [notes, containers],
+  );
 
   const noteNames = useMemo(
     () => new Set(notes.map((n) => n.container_name)),
@@ -133,6 +145,19 @@ export default function App() {
             {pinFilter ? <PushPinIcon /> : <PushPinOutlinedIcon />}
           </IconButton>
         </Tooltip>
+        {orphanedNotes.length > 0 && (
+          <Tooltip title={`${orphanedNotes.length} orphaned notes`}>
+            <IconButton
+              onClick={() => setOrphanDialogOpen(true)}
+              size="small"
+              color="warning"
+            >
+              <Badge badgeContent={orphanedNotes.length} color="warning">
+                <WarningAmberIcon />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        )}
         <Tooltip title="Refresh container list">
           <span>
             <IconButton
@@ -192,6 +217,21 @@ export default function App() {
           )}
         </Box>
       </Box>
+
+      <OrphanedNotesDialog
+        open={orphanDialogOpen}
+        onClose={() => setOrphanDialogOpen(false)}
+        orphanedNotes={orphanedNotes}
+        onDelete={async (name) => {
+          await remove(name);
+        }}
+        onDeleteAll={async () => {
+          for (const n of orphanedNotes) {
+            await remove(n.container_name);
+          }
+          setOrphanDialogOpen(false);
+        }}
+      />
     </Box>
   );
 }
