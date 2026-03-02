@@ -208,6 +208,46 @@ func TestList_Search(t *testing.T) {
 	}
 }
 
+func TestList_SearchByTag(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	_, _ = s.Create(ctx, models.CreateNoteRequest{
+		ContainerName: "web-app",
+		NoteContent:   "serves pages",
+		Tags:          []string{"web", "frontend"},
+	})
+	_, _ = s.Create(ctx, models.CreateNoteRequest{
+		ContainerName: "pg-server",
+		NoteContent:   "stores data",
+		Tags:          []string{"database", "backend"},
+	})
+
+	// Search for "frontend" should match only web-app (via tags)
+	notes, err := s.List(ctx, nil, "frontend")
+	if err != nil {
+		t.Fatalf("List search frontend: %v", err)
+	}
+	if len(notes) != 1 {
+		t.Fatalf("len = %d, want 1", len(notes))
+	}
+	if notes[0].ContainerName != "web-app" {
+		t.Errorf("ContainerName = %q, want %q", notes[0].ContainerName, "web-app")
+	}
+
+	// Search for "database" should match only pg-server (via tags)
+	notes, err = s.List(ctx, nil, "database")
+	if err != nil {
+		t.Fatalf("List search database: %v", err)
+	}
+	if len(notes) != 1 {
+		t.Fatalf("len = %d, want 1", len(notes))
+	}
+	if notes[0].ContainerName != "pg-server" {
+		t.Errorf("ContainerName = %q, want %q", notes[0].ContainerName, "pg-server")
+	}
+}
+
 func TestUpdate_NoteContent(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
