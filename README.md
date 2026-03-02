@@ -8,21 +8,18 @@ Docker Desktop shows container name, image, status, ports, and logs — but ther
 
 ## Features
 
-- **Container notes** — Attach text notes to any container with tag-based organization
+- **Container notes** — Attach rich text notes to any container with tag-based organization
+- **Markdown support** — Write notes in Markdown with live preview toggle
 - **Name-based persistence** — Notes survive `docker-compose down && up` cycles (keyed by name, not ephemeral ID)
 - **Lifecycle management** — Container IDs auto-reconcile when containers are recreated
-- **Search and filter** — Find containers by name, filter by pinned notes
+- **Search and filter** — Find containers by name, content, or tags; filter by pinned notes
 - **Pin notes** — Pin important notes for quick access
-
-### Planned
-
-- **Orphan management** — View and clean up notes for containers that no longer exist
-- **Markdown support** — Rich text formatting for notes
-- **Export/Import** — Back up your notes as JSON
+- **Orphan management** — Detect and clean up notes for containers that no longer exist
+- **Export/Import** — Back up all notes as JSON, restore from backup
 
 ## Status
 
-**In Development** — MVP functional with container notes, search, and lifecycle management.
+**In Development** — Feature-complete with container notes, markdown, search, export/import, and lifecycle management.
 
 ## Architecture
 
