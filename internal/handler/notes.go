@@ -22,6 +22,8 @@ func NewHandler(s *store.NoteStore) *Handler {
 
 // RegisterRoutes registers all note routes on the given ServeMux.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /notes/export", h.HandleExportNotes)
+	mux.HandleFunc("POST /notes/import", h.HandleImportNotes)
 	mux.HandleFunc("GET /notes", h.HandleListNotes)
 	mux.HandleFunc("GET /notes/{name}", h.HandleGetNote)
 	mux.HandleFunc("POST /notes", h.HandleCreateNote)
@@ -122,6 +124,34 @@ func (h *Handler) HandleUpdateNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, note)
+}
+
+// HandleExportNotes returns all notes as a JSON array.
+func (h *Handler) HandleExportNotes(w http.ResponseWriter, r *http.Request) {
+	notes, err := h.store.ExportAll(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to export notes")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, notes)
+}
+
+// HandleImportNotes imports notes from a JSON array in the request body.
+func (h *Handler) HandleImportNotes(w http.ResponseWriter, r *http.Request) {
+	var notes []models.Note
+	if err := json.NewDecoder(r.Body).Decode(&notes); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+
+	imported, err := h.store.ImportAll(r.Context(), notes)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to import notes")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]int{"imported": imported})
 }
 
 // HandleDeleteNote deletes the note for the given container name.

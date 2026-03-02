@@ -256,6 +256,87 @@ func scanNoteRow(row *sql.Row) (models.Note, error) {
 	return n, nil
 }
 
+// ExportAll returns all notes for export.
+func (s *NoteStore) ExportAll(ctx context.Context) ([]models.Note, error) {
+	return s.List(ctx, nil, "")
+}
+
+// ImportAll upserts notes from an import payload inside a transaction.
+// Notes with an empty ContainerName are skipped. Returns the count of
+// successfully imported (created or updated) notes.
+func (s *NoteStore) ImportAll(ctx context.Context, notes []models.Note) (imported int, err error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	for i := range notes {
+		n := &notes[i]
+		if n.ContainerName == "" {
+			continue
+		}
+
+		tags := n.Tags
+		if tags == nil {
+			tags = []string{}
+		}
+		tagsJSON, marshalErr := json.Marshal(tags)
+		if marshalErr != nil {
+			err = fmt.Errorf("marshal tags for %q: %w", n.ContainerName, marshalErr)
+			return 0, err
+		}
+
+		now := time.Now().UTC().Format(time.RFC3339)
+		pinnedVal := 0
+		if n.Pinned {
+			pinnedVal = 1
+		}
+
+		// Check if note already exists by container name.
+		var existingID int64
+		row := tx.QueryRowContext(ctx,
+			"SELECT id FROM notes WHERE container_name = ?", n.ContainerName)
+		scanErr := row.Scan(&existingID)
+
+		if scanErr == nil {
+			// Exists: update.
+			_, execErr := tx.ExecContext(ctx,
+				"UPDATE notes SET container_id = ?, compose_project = ?, compose_service = ?, note_content = ?, pinned = ?, tags = ?, updated_at = ? WHERE id = ?",
+				n.ContainerID, n.ComposeProject, n.ComposeService,
+				n.NoteContent, pinnedVal, string(tagsJSON), now, existingID)
+			if execErr != nil {
+				err = fmt.Errorf("update note %q: %w", n.ContainerName, execErr)
+				return 0, err
+			}
+		} else if errors.Is(scanErr, sql.ErrNoRows) {
+			// Does not exist: insert.
+			_, execErr := tx.ExecContext(ctx,
+				"INSERT INTO notes (container_name, container_id, compose_project, compose_service, note_content, pinned, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				n.ContainerName, n.ContainerID, n.ComposeProject, n.ComposeService,
+				n.NoteContent, pinnedVal, string(tagsJSON), now, now)
+			if execErr != nil {
+				err = fmt.Errorf("insert note %q: %w", n.ContainerName, execErr)
+				return 0, err
+			}
+		} else {
+			err = fmt.Errorf("check existing note %q: %w", n.ContainerName, scanErr)
+			return 0, err
+		}
+		imported++
+	}
+
+	if commitErr := tx.Commit(); commitErr != nil {
+		err = fmt.Errorf("commit tx: %w", commitErr)
+		return 0, err
+	}
+	return imported, nil
+}
+
 func parseTime(s string) time.Time {
 	t, _ := time.Parse(time.RFC3339, s)
 	return t

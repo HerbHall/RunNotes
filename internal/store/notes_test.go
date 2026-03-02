@@ -337,3 +337,112 @@ func TestDelete_NotFound(t *testing.T) {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestExportAll(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	_, _ = s.Create(ctx, models.CreateNoteRequest{
+		ContainerName: "web",
+		NoteContent:   "web server",
+		Tags:          []string{"http"},
+	})
+	_, _ = s.Create(ctx, models.CreateNoteRequest{
+		ContainerName: "db",
+		NoteContent:   "database",
+		Tags:          []string{"sql"},
+	})
+
+	notes, err := s.ExportAll(ctx)
+	if err != nil {
+		t.Fatalf("ExportAll: %v", err)
+	}
+	if len(notes) != 2 {
+		t.Errorf("len = %d, want 2", len(notes))
+	}
+}
+
+func TestImportAll(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	notes := []models.Note{
+		{ContainerName: "a", NoteContent: "note-a", Tags: []string{"tag1"}},
+		{ContainerName: "b", NoteContent: "note-b"},
+		{ContainerName: "c", NoteContent: "note-c"},
+	}
+
+	imported, err := s.ImportAll(ctx, notes)
+	if err != nil {
+		t.Fatalf("ImportAll: %v", err)
+	}
+	if imported != 3 {
+		t.Errorf("imported = %d, want 3", imported)
+	}
+
+	all, err := s.List(ctx, nil, "")
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(all) != 3 {
+		t.Errorf("len = %d, want 3", len(all))
+	}
+}
+
+func TestImportAll_Upsert(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	_, err := s.Create(ctx, models.CreateNoteRequest{
+		ContainerName: "existing",
+		NoteContent:   "old content",
+		Tags:          []string{"old"},
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	notes := []models.Note{
+		{ContainerName: "existing", NoteContent: "new content", Pinned: true, Tags: []string{"new"}},
+	}
+
+	imported, err := s.ImportAll(ctx, notes)
+	if err != nil {
+		t.Fatalf("ImportAll: %v", err)
+	}
+	if imported != 1 {
+		t.Errorf("imported = %d, want 1", imported)
+	}
+
+	got, err := s.GetByName(ctx, "existing")
+	if err != nil {
+		t.Fatalf("GetByName: %v", err)
+	}
+	if got.NoteContent != "new content" {
+		t.Errorf("NoteContent = %q, want %q", got.NoteContent, "new content")
+	}
+	if !got.Pinned {
+		t.Error("expected Pinned = true after upsert")
+	}
+	if len(got.Tags) != 1 || got.Tags[0] != "new" {
+		t.Errorf("Tags = %v, want [new]", got.Tags)
+	}
+}
+
+func TestImportAll_SkipsEmptyName(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	notes := []models.Note{
+		{ContainerName: "", NoteContent: "should be skipped"},
+		{ContainerName: "valid", NoteContent: "included"},
+	}
+
+	imported, err := s.ImportAll(ctx, notes)
+	if err != nil {
+		t.Fatalf("ImportAll: %v", err)
+	}
+	if imported != 1 {
+		t.Errorf("imported = %d, want 1", imported)
+	}
+}

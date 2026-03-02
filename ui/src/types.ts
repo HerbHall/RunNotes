@@ -27,6 +27,10 @@ export interface UpdateNoteRequest {
   container_id?: string;
 }
 
+export interface ImportResult {
+  imported: number;
+}
+
 export interface ContainerInfo {
   id: string;
   name: string;

@@ -3,6 +3,7 @@ import type {
   Note,
   CreateNoteRequest,
   UpdateNoteRequest,
+  ImportResult,
   ContainerInfo,
 } from "../types";
 
@@ -48,6 +49,19 @@ export async function deleteNote(name: string): Promise<void> {
   await ddClient.extension.vm?.service?.delete(
     `/notes/${encodeURIComponent(name)}`,
   );
+}
+
+export async function exportNotes(): Promise<Note[]> {
+  const result = await ddClient.extension.vm?.service?.get("/notes/export");
+  return result as Note[];
+}
+
+export async function importNotes(notes: Note[]): Promise<ImportResult> {
+  const result = await ddClient.extension.vm?.service?.post(
+    "/notes/import",
+    notes,
+  );
+  return result as ImportResult;
 }
 
 export async function listContainers(): Promise<ContainerInfo[]> {
