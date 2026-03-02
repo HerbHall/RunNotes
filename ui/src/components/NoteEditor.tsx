@@ -10,17 +10,22 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
-import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import type {
   Note,
   ContainerInfo,
   CreateNoteRequest,
   UpdateNoteRequest,
 } from "../types";
+import { MarkdownPreview } from "./MarkdownPreview";
 
 interface NoteEditorProps {
   containerName: string;
@@ -46,12 +51,14 @@ export function NoteEditor({
   const [tagInput, setTagInput] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     setContent(note?.note_content ?? "");
     setPinned(note?.pinned ?? false);
     setTags(note?.tags ?? []);
     setTagInput("");
+    setPreview(false);
   }, [note, containerName]);
 
   const handleSave = useCallback(async () => {
@@ -153,16 +160,37 @@ export function NoteEditor({
         </Tooltip>
       </Stack>
 
-      <TextField
-        multiline
-        minRows={4}
-        maxRows={20}
-        fullWidth
-        placeholder="Write your note here..."
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        sx={{ mb: 2 }}
-      />
+      <ToggleButtonGroup
+        value={preview ? "preview" : "edit"}
+        exclusive
+        onChange={(_, val) => { if (val) setPreview(val === "preview"); }}
+        size="small"
+        sx={{ mb: 1 }}
+      >
+        <ToggleButton value="edit">
+          <EditIcon sx={{ mr: 0.5 }} fontSize="small" />
+          Edit
+        </ToggleButton>
+        <ToggleButton value="preview">
+          <VisibilityIcon sx={{ mr: 0.5 }} fontSize="small" />
+          Preview
+        </ToggleButton>
+      </ToggleButtonGroup>
+
+      {preview ? (
+        <MarkdownPreview content={content} />
+      ) : (
+        <TextField
+          multiline
+          minRows={4}
+          maxRows={20}
+          fullWidth
+          placeholder="Write your note here... (supports Markdown)"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+      )}
 
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1 }}>
         {tags.map((tag) => (
