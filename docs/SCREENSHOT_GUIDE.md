@@ -15,7 +15,7 @@ Screenshots for the Docker Desktop Extensions Marketplace listing.
 
    ```bash
    make build-extension
-   echo "y" | docker extension install herbhall/runnotes:latest
+   echo "y" | docker extension install herbhall/runnotes:0.1.0
    ```
 
 2. Create 3-4 sample containers with different states:
