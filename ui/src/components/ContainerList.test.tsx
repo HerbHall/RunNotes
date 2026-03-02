@@ -28,7 +28,7 @@ describe("ContainerList", () => {
         containers={mockContainers}
         selectedName={null}
         onSelect={vi.fn()}
-        noteNames={new Set()}
+        noteCounts={new Map()}
         loading={false}
       />,
     );
@@ -42,7 +42,7 @@ describe("ContainerList", () => {
         containers={[]}
         selectedName={null}
         onSelect={vi.fn()}
-        noteNames={new Set()}
+        noteCounts={new Map()}
         loading={false}
       />,
     );
@@ -55,7 +55,7 @@ describe("ContainerList", () => {
         containers={[]}
         selectedName={null}
         onSelect={vi.fn()}
-        noteNames={new Set()}
+        noteCounts={new Map()}
         loading={true}
       />,
     );
@@ -70,7 +70,7 @@ describe("ContainerList", () => {
         containers={mockContainers}
         selectedName={null}
         onSelect={onSelect}
-        noteNames={new Set()}
+        noteCounts={new Map()}
         loading={false}
       />,
     );
@@ -84,12 +84,24 @@ describe("ContainerList", () => {
         containers={mockContainers}
         selectedName={null}
         onSelect={vi.fn()}
-        noteNames={new Set(["web-app"])}
+        noteCounts={new Map([["web-app", 1]])}
         loading={false}
       />,
     );
-    // The note icon (DescriptionIcon) is rendered as an SVG with data-testid
     const noteIcons = container.querySelectorAll("[data-testid='DescriptionIcon']");
     expect(noteIcons).toHaveLength(1);
+  });
+
+  it("shows badge with count for containers with multiple notes", () => {
+    render(
+      <ContainerList
+        containers={mockContainers}
+        selectedName={null}
+        onSelect={vi.fn()}
+        noteCounts={new Map([["web-app", 3]])}
+        loading={false}
+      />,
+    );
+    expect(screen.getByText("3")).toBeInTheDocument();
   });
 });

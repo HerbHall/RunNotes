@@ -5,6 +5,7 @@ import {
   createNote as apiCreate,
   updateNote as apiUpdate,
   deleteNote as apiDelete,
+  deleteContainerNotes as apiDeleteContainer,
   showToast,
 } from "../api/client";
 
@@ -41,8 +42,8 @@ export function useNotes() {
   );
 
   const update = useCallback(
-    async (name: string, req: UpdateNoteRequest) => {
-      const note = await apiUpdate(name, req);
+    async (id: number, req: UpdateNoteRequest) => {
+      const note = await apiUpdate(id, req);
       showToast("success", "Note saved");
       await refresh();
       return note;
@@ -51,19 +52,38 @@ export function useNotes() {
   );
 
   const remove = useCallback(
-    async (name: string) => {
-      await apiDelete(name);
+    async (id: number) => {
+      await apiDelete(id);
       showToast("success", "Note deleted");
       await refresh();
     },
     [refresh],
   );
 
-  const getNoteForContainer = useCallback(
+  const removeAllForContainer = useCallback(
+    async (name: string) => {
+      await apiDeleteContainer(name);
+      showToast("success", "Notes deleted");
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const getNotesForContainer = useCallback(
     (containerName: string) =>
-      notes.find((n) => n.container_name === containerName) ?? null,
+      notes.filter((n) => n.container_name === containerName),
     [notes],
   );
 
-  return { notes, loading, error, refresh, create, update, remove, getNoteForContainer };
+  return {
+    notes,
+    loading,
+    error,
+    refresh,
+    create,
+    update,
+    remove,
+    removeAllForContainer,
+    getNotesForContainer,
+  };
 }

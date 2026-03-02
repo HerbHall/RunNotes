@@ -19,13 +19,8 @@ interface OrphanedNotesDialogProps {
   open: boolean;
   onClose: () => void;
   orphanedNotes: Note[];
-  onDelete: (name: string) => Promise<void>;
+  onDeleteContainer: (name: string) => Promise<void>;
   onDeleteAll: () => Promise<void>;
-}
-
-function truncate(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + "...";
 }
 
 function formatDate(dateStr: string): string {
@@ -40,10 +35,18 @@ export function OrphanedNotesDialog({
   open,
   onClose,
   orphanedNotes,
-  onDelete,
+  onDeleteContainer,
   onDeleteAll,
 }: OrphanedNotesDialogProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Group orphaned notes by container name
+  const grouped = new Map<string, Note[]>();
+  for (const note of orphanedNotes) {
+    const existing = grouped.get(note.container_name) ?? [];
+    existing.push(note);
+    grouped.set(note.container_name, existing);
+  }
 
   const handleDeleteAll = async () => {
     setConfirmOpen(false);
@@ -66,16 +69,16 @@ export function OrphanedNotesDialog({
             </Box>
           ) : (
             <List disablePadding>
-              {orphanedNotes.map((note) => (
+              {Array.from(grouped.entries()).map(([containerName, notes]) => (
                 <ListItem
-                  key={note.container_name}
+                  key={containerName}
                   secondaryAction={
-                    <Tooltip title="Delete note">
+                    <Tooltip title={`Delete all notes for ${containerName}`}>
                       <IconButton
                         edge="end"
-                        aria-label={`Delete note for ${note.container_name}`}
+                        aria-label={`Delete notes for ${containerName}`}
                         color="error"
-                        onClick={() => onDelete(note.container_name)}
+                        onClick={() => onDeleteContainer(containerName)}
                       >
                         <DeleteIcon />
                       </IconButton>
@@ -84,14 +87,16 @@ export function OrphanedNotesDialog({
                   sx={{ borderBottom: 1, borderColor: "divider" }}
                 >
                   <ListItemText
-                    primary={note.container_name}
+                    primary={
+                      notes.length > 1
+                        ? `${containerName} (${notes.length} notes)`
+                        : containerName
+                    }
                     secondary={
                       <>
-                        {note.note_content
-                          ? truncate(note.note_content, 100)
-                          : "Empty note"}
+                        {notes.map((n) => n.title).join(", ")}
                         {" — "}
-                        {formatDate(note.updated_at)}
+                        {formatDate(notes[0].updated_at)}
                       </>
                     }
                     primaryTypographyProps={{ variant: "subtitle2" }}

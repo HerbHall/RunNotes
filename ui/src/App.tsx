@@ -12,6 +12,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { ContainerList } from "./components/ContainerList";
 import { ExportImportButtons } from "./components/ExportImportButtons";
 import { NoteEditor } from "./components/NoteEditor";
+import { NoteListView } from "./components/NoteListView";
 import { OrphanedNotesDialog } from "./components/OrphanedNotesDialog";
 import { SearchBar } from "./components/SearchBar";
 import { useContainers } from "./hooks/useContainers";
@@ -30,8 +31,9 @@ export default function App() {
     create,
     update,
     remove,
+    removeAllForContainer,
     refresh: refreshNotes,
-    getNoteForContainer,
+    getNotesForContainer,
   } = useNotes();
 
   const reconciledRef = useRef(false);
@@ -52,7 +54,7 @@ export default function App() {
           const container = containers.find(
             (c) => c.name === note.container_name,
           )!;
-          return update(note.container_name, { container_id: container.id });
+          return update(note.id, { container_id: container.id });
         }),
       );
     }
@@ -65,9 +67,15 @@ export default function App() {
   }, [refreshContainers, refreshNotes]);
 
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [pinFilter, setPinFilter] = useState(false);
   const [orphanDialogOpen, setOrphanDialogOpen] = useState(false);
+
+  const handleSelectContainer = useCallback((name: string) => {
+    setSelectedName(name);
+    setSelectedNoteId(null);
+  }, []);
 
   const orphanedNotes = useMemo(
     () =>
@@ -77,10 +85,13 @@ export default function App() {
     [notes, containers],
   );
 
-  const noteNames = useMemo(
-    () => new Set(notes.map((n) => n.container_name)),
-    [notes],
-  );
+  const noteCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const n of notes) {
+      counts.set(n.container_name, (counts.get(n.container_name) ?? 0) + 1);
+    }
+    return counts;
+  }, [notes]);
 
   const pinnedNames = useMemo(
     () => new Set(notes.filter((n) => n.pinned).map((n) => n.container_name)),
@@ -100,21 +111,23 @@ export default function App() {
   }, [containers, search, pinFilter, pinnedNames]);
 
   const selectedContainer = containers.find((c) => c.name === selectedName) ?? null;
-  const selectedNote = selectedName ? getNoteForContainer(selectedName) : null;
+  const containerNotes = selectedName ? getNotesForContainer(selectedName) : [];
+  const selectedNote = selectedNoteId != null
+    ? containerNotes.find((n) => n.id === selectedNoteId) ?? null
+    : null;
 
-  const handleSave = async (
-    name: string,
-    req: CreateNoteRequest | UpdateNoteRequest,
-  ) => {
-    if ("container_name" in req) {
-      await create(req);
-    } else {
-      await update(name, req);
-    }
+  const handleCreateNote = async (req: CreateNoteRequest) => {
+    const note = await create(req);
+    setSelectedNoteId(note.id);
   };
 
-  const handleDelete = async (name: string) => {
-    await remove(name);
+  const handleUpdateNote = async (id: number, req: UpdateNoteRequest) => {
+    await update(id, req);
+  };
+
+  const handleDeleteNote = async (id: number) => {
+    await remove(id);
+    setSelectedNoteId(null);
   };
 
   return (
@@ -184,8 +197,8 @@ export default function App() {
           <ContainerList
             containers={filteredContainers}
             selectedName={selectedName}
-            onSelect={setSelectedName}
-            noteNames={noteNames}
+            onSelect={handleSelectContainer}
+            noteCounts={noteCounts}
             loading={containersLoading || notesLoading}
           />
         </Box>
@@ -193,15 +206,7 @@ export default function App() {
         <Divider orientation="vertical" flexItem />
 
         <Box sx={{ flex: 1, overflowY: "auto" }}>
-          {selectedContainer != null ? (
-            <NoteEditor
-              containerName={selectedName!}
-              container={selectedContainer}
-              note={selectedNote}
-              onSave={handleSave}
-              onDelete={handleDelete}
-            />
-          ) : (
+          {selectedContainer == null ? (
             <Box
               sx={{
                 display: "flex",
@@ -214,6 +219,22 @@ export default function App() {
                 Select a container to view or add notes
               </Typography>
             </Box>
+          ) : selectedNote != null ? (
+            <NoteEditor
+              note={selectedNote}
+              container={selectedContainer}
+              onSave={handleUpdateNote}
+              onDelete={handleDeleteNote}
+              onBack={() => setSelectedNoteId(null)}
+            />
+          ) : (
+            <NoteListView
+              containerName={selectedName!}
+              container={selectedContainer}
+              notes={containerNotes}
+              onSelectNote={setSelectedNoteId}
+              onCreateNote={handleCreateNote}
+            />
           )}
         </Box>
       </Box>
@@ -222,12 +243,13 @@ export default function App() {
         open={orphanDialogOpen}
         onClose={() => setOrphanDialogOpen(false)}
         orphanedNotes={orphanedNotes}
-        onDelete={async (name) => {
-          await remove(name);
+        onDeleteContainer={async (name) => {
+          await removeAllForContainer(name);
         }}
         onDeleteAll={async () => {
-          for (const n of orphanedNotes) {
-            await remove(n.container_name);
+          const containerNames = new Set(orphanedNotes.map((n) => n.container_name));
+          for (const name of containerNames) {
+            await removeAllForContainer(name);
           }
           setOrphanDialogOpen(false);
         }}
