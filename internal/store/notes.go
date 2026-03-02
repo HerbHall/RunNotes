@@ -41,9 +41,9 @@ func (s *NoteStore) List(ctx context.Context, pinned *bool, search string) ([]mo
 		}
 	}
 	if search != "" {
-		conditions = append(conditions, "(container_name LIKE ? OR note_content LIKE ?)")
+		conditions = append(conditions, "(container_name LIKE ? OR note_content LIKE ? OR tags LIKE ?)")
 		like := "%" + search + "%"
-		args = append(args, like, like)
+		args = append(args, like, like, like)
 	}
 
 	if len(conditions) > 0 {
