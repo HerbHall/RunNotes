@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -6,6 +6,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { ContainerList } from "./components/ContainerList";
 import { NoteEditor } from "./components/NoteEditor";
 import { SearchBar } from "./components/SearchBar";
@@ -14,9 +15,50 @@ import { useNotes } from "./hooks/useNotes";
 import type { CreateNoteRequest, UpdateNoteRequest } from "./types";
 
 export default function App() {
-  const { containers, loading: containersLoading } = useContainers();
-  const { notes, loading: notesLoading, create, update, remove, getNoteForContainer } =
-    useNotes();
+  const {
+    containers,
+    loading: containersLoading,
+    refresh: refreshContainers,
+  } = useContainers();
+  const {
+    notes,
+    loading: notesLoading,
+    create,
+    update,
+    remove,
+    refresh: refreshNotes,
+    getNoteForContainer,
+  } = useNotes();
+
+  const reconciledRef = useRef(false);
+
+  // Auto-reconcile stale container IDs after data loads
+  useEffect(() => {
+    if (containersLoading || notesLoading || reconciledRef.current) return;
+    const stale = notes.filter((note) => {
+      const container = containers.find(
+        (c) => c.name === note.container_name,
+      );
+      return container && container.id !== note.container_id;
+    });
+    if (stale.length > 0) {
+      reconciledRef.current = true;
+      Promise.all(
+        stale.map((note) => {
+          const container = containers.find(
+            (c) => c.name === note.container_name,
+          )!;
+          return update(note.container_name, { container_id: container.id });
+        }),
+      );
+    }
+  }, [containers, notes, containersLoading, notesLoading, update]);
+
+  const handleRefresh = useCallback(async () => {
+    reconciledRef.current = false;
+    await refreshContainers();
+    await refreshNotes();
+  }, [refreshContainers, refreshNotes]);
 
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -88,6 +130,17 @@ export default function App() {
           >
             {pinFilter ? <PushPinIcon /> : <PushPinOutlinedIcon />}
           </IconButton>
+        </Tooltip>
+        <Tooltip title="Refresh container list">
+          <span>
+            <IconButton
+              onClick={handleRefresh}
+              size="small"
+              disabled={containersLoading || notesLoading}
+            >
+              <RefreshIcon />
+            </IconButton>
+          </span>
         </Tooltip>
       </Box>
 

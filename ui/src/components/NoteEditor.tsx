@@ -62,6 +62,7 @@ export function NoteEditor({
           note_content: content,
           pinned,
           tags,
+          container_id: container.id,
         };
         await onSave(containerName, req);
       } else {

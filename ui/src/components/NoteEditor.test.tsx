@@ -92,6 +92,7 @@ describe("NoteEditor", () => {
       note_content: "Updated content",
       pinned: false,
       tags: ["web", "frontend"],
+      container_id: "abc123",
     });
   });
 
