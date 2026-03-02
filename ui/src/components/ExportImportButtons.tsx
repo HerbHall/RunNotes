@@ -108,8 +108,8 @@ export function ExportImportButtons({ onRefresh }: ExportImportButtonsProps) {
         <DialogTitle>Import Notes</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Import {pendingNotes.length} notes? Existing notes with the same
-            container name will be updated.
+            Import {pendingNotes.length} notes? Existing notes with matching
+            container names and titles will be updated.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

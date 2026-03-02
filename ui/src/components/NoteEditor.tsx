@@ -14,6 +14,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import PushPinIcon from "@mui/icons-material/PushPin";
@@ -22,71 +23,58 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import type {
   Note,
   ContainerInfo,
-  CreateNoteRequest,
   UpdateNoteRequest,
 } from "../types";
 import { MarkdownPreview } from "./MarkdownPreview";
 
 interface NoteEditorProps {
-  containerName: string;
+  note: Note;
   container: ContainerInfo;
-  note: Note | null;
-  onSave: (
-    name: string,
-    req: CreateNoteRequest | UpdateNoteRequest,
-  ) => Promise<void>;
-  onDelete: (name: string) => Promise<void>;
+  onSave: (id: number, req: UpdateNoteRequest) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+  onBack: () => void;
 }
 
 export function NoteEditor({
-  containerName,
-  container,
   note,
+  container,
   onSave,
   onDelete,
+  onBack,
 }: NoteEditorProps) {
-  const [content, setContent] = useState(note?.note_content ?? "");
-  const [pinned, setPinned] = useState(note?.pinned ?? false);
-  const [tags, setTags] = useState<string[]>(note?.tags ?? []);
+  const [title, setTitle] = useState(note.title);
+  const [content, setContent] = useState(note.note_content);
+  const [pinned, setPinned] = useState(note.pinned);
+  const [tags, setTags] = useState<string[]>(note.tags);
   const [tagInput, setTagInput] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
 
   useEffect(() => {
-    setContent(note?.note_content ?? "");
-    setPinned(note?.pinned ?? false);
-    setTags(note?.tags ?? []);
+    setTitle(note.title);
+    setContent(note.note_content);
+    setPinned(note.pinned);
+    setTags(note.tags);
     setTagInput("");
     setPreview(false);
-  }, [note, containerName]);
+  }, [note]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      if (note) {
-        const req: UpdateNoteRequest = {
-          note_content: content,
-          pinned,
-          tags,
-          container_id: container.id,
-        };
-        await onSave(containerName, req);
-      } else {
-        const req: CreateNoteRequest = {
-          container_name: containerName,
-          container_id: container.id,
-          compose_project: container.composeProject,
-          compose_service: container.composeService,
-          note_content: content,
-          tags,
-        };
-        await onSave(containerName, req);
-      }
+      const req: UpdateNoteRequest = {
+        title,
+        note_content: content,
+        pinned,
+        tags,
+        container_id: container.id,
+      };
+      await onSave(note.id, req);
     } finally {
       setSaving(false);
     }
-  }, [note, content, pinned, tags, containerName, container, onSave]);
+  }, [note.id, title, content, pinned, tags, container, onSave]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -112,33 +100,36 @@ export function NoteEditor({
 
   const handleDelete = useCallback(async () => {
     setConfirmOpen(false);
-    await onDelete(containerName);
-  }, [onDelete, containerName]);
+    await onDelete(note.id);
+    onBack();
+  }, [onDelete, note.id, onBack]);
 
   const hasChanges =
-    note != null &&
-    (content !== note.note_content ||
-      pinned !== note.pinned ||
-      JSON.stringify(tags) !== JSON.stringify(note.tags));
-
-  if (note == null) {
-    return (
-      <Box sx={{ p: 3, textAlign: "center" }}>
-        <Typography variant="body1" color="text.secondary" gutterBottom>
-          No note yet for {containerName}
-        </Typography>
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
-          Add Note
-        </Button>
-      </Box>
-    );
-  }
+    title !== note.title ||
+    content !== note.note_content ||
+    pinned !== note.pinned ||
+    JSON.stringify(tags) !== JSON.stringify(note.tags);
 
   return (
     <Box sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }} onKeyDown={handleKeyDown}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ flex: 1 }}>
-          {containerName}
+        <Tooltip title="Back to note list">
+          <IconButton onClick={onBack} size="small">
+            <ArrowBackIcon />
+          </IconButton>
+        </Tooltip>
+        <TextField
+          variant="standard"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Note title"
+          InputProps={{
+            style: { fontSize: "1.25rem", fontWeight: 500 },
+          }}
+          sx={{ flex: 1 }}
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+          {note.container_name}
         </Typography>
         <Tooltip title={pinned ? "Unpin note" : "Pin note"}>
           <IconButton onClick={() => setPinned(!pinned)} size="small">
@@ -235,6 +226,7 @@ export function NoteEditor({
           variant="outlined"
           disabled={!hasChanges}
           onClick={() => {
+            setTitle(note.title);
             setContent(note.note_content);
             setPinned(note.pinned);
             setTags(note.tags);
@@ -248,7 +240,7 @@ export function NoteEditor({
         <DialogTitle>Delete Note</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the note for {containerName}? This
+            Are you sure you want to delete &quot;{note.title}&quot;? This
             action cannot be undone.
           </DialogContentText>
         </DialogContent>

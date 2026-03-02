@@ -4,6 +4,7 @@ export interface Note {
   container_id: string;
   compose_project: string;
   compose_service: string;
+  title: string;
   note_content: string;
   pinned: boolean;
   tags: string[];
@@ -16,11 +17,13 @@ export interface CreateNoteRequest {
   container_id?: string;
   compose_project?: string;
   compose_service?: string;
+  title: string;
   note_content?: string;
   tags?: string[];
 }
 
 export interface UpdateNoteRequest {
+  title?: string;
   note_content?: string;
   pinned?: boolean;
   tags?: string[];

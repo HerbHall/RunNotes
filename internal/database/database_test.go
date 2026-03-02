@@ -66,7 +66,7 @@ func TestOpen_CreatesNotesTable(t *testing.T) {
 	expected := []string{
 		"id", "container_name", "container_id",
 		"compose_project", "compose_service",
-		"note_content", "pinned", "tags",
+		"title", "note_content", "pinned", "tags",
 		"created_at", "updated_at",
 	}
 	for _, col := range expected {
@@ -91,7 +91,7 @@ func TestOpen_Idempotent(t *testing.T) {
 	_ = db2.Close()
 }
 
-func TestOpen_UniqueIndex(t *testing.T) {
+func TestOpen_AllowsMultipleNotesPerContainer(t *testing.T) {
 	db, err := Open(":memory:")
 	if err != nil {
 		t.Fatalf("Open(:memory:): %v", err)
@@ -100,16 +100,16 @@ func TestOpen_UniqueIndex(t *testing.T) {
 
 	ctx := context.Background()
 	_, err = db.ExecContext(ctx,
-		"INSERT INTO notes (container_name, note_content) VALUES (?, ?)",
-		"test-container", "first note")
+		"INSERT INTO notes (container_name, title, note_content) VALUES (?, ?, ?)",
+		"test-container", "First", "first note")
 	if err != nil {
 		t.Fatalf("first insert: %v", err)
 	}
 
 	_, err = db.ExecContext(ctx,
-		"INSERT INTO notes (container_name, note_content) VALUES (?, ?)",
-		"test-container", "duplicate note")
-	if err == nil {
-		t.Fatal("expected unique constraint error on duplicate container_name, got nil")
+		"INSERT INTO notes (container_name, title, note_content) VALUES (?, ?, ?)",
+		"test-container", "Second", "second note")
+	if err != nil {
+		t.Fatalf("second insert should succeed (multiple notes per container): %v", err)
 	}
 }

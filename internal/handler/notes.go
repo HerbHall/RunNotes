@@ -25,10 +25,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /notes/export", h.HandleExportNotes)
 	mux.HandleFunc("POST /notes/import", h.HandleImportNotes)
 	mux.HandleFunc("GET /notes", h.HandleListNotes)
-	mux.HandleFunc("GET /notes/{name}", h.HandleGetNote)
 	mux.HandleFunc("POST /notes", h.HandleCreateNote)
-	mux.HandleFunc("PUT /notes/{name}", h.HandleUpdateNote)
-	mux.HandleFunc("DELETE /notes/{name}", h.HandleDeleteNote)
+	mux.HandleFunc("GET /notes/container/{name}", h.HandleListContainerNotes)
+	mux.HandleFunc("DELETE /notes/container/{name}", h.HandleDeleteContainerNotes)
+	mux.HandleFunc("GET /notes/{id}", h.HandleGetNote)
+	mux.HandleFunc("PUT /notes/{id}", h.HandleUpdateNote)
+	mux.HandleFunc("DELETE /notes/{id}", h.HandleDeleteNote)
 }
 
 // HandleListNotes returns all notes, with optional ?pinned= and ?search= filters.
@@ -54,11 +56,28 @@ func (h *Handler) HandleListNotes(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, notes)
 }
 
-// HandleGetNote returns the note for the given container name.
-func (h *Handler) HandleGetNote(w http.ResponseWriter, r *http.Request) {
+// HandleListContainerNotes returns all notes for the given container name.
+func (h *Handler) HandleListContainerNotes(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
-	note, err := h.store.GetByName(r.Context(), name)
+	notes, err := h.store.ListByContainer(r.Context(), name)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list container notes")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, notes)
+}
+
+// HandleGetNote returns the note with the given ID.
+func (h *Handler) HandleGetNote(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid note ID")
+		return
+	}
+
+	note, err := h.store.GetByID(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "note not found")
 		return
@@ -86,11 +105,6 @@ func (h *Handler) HandleCreateNote(w http.ResponseWriter, r *http.Request) {
 
 	note, err := h.store.Create(r.Context(), req)
 	if err != nil {
-		// Check for unique constraint violation.
-		if isUniqueViolation(err) {
-			writeError(w, http.StatusConflict, "note already exists for this container")
-			return
-		}
 		writeError(w, http.StatusInternalServerError, "failed to create note")
 		return
 	}
@@ -98,9 +112,13 @@ func (h *Handler) HandleCreateNote(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, note)
 }
 
-// HandleUpdateNote applies partial updates to the note for the given container name.
+// HandleUpdateNote applies partial updates to the note with the given ID.
 func (h *Handler) HandleUpdateNote(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid note ID")
+		return
+	}
 
 	var req models.UpdateNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -113,7 +131,7 @@ func (h *Handler) HandleUpdateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	note, err := h.store.Update(r.Context(), name, req)
+	note, err := h.store.Update(r.Context(), id, req)
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "note not found")
 		return
@@ -154,11 +172,15 @@ func (h *Handler) HandleImportNotes(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]int{"imported": imported})
 }
 
-// HandleDeleteNote deletes the note for the given container name.
+// HandleDeleteNote deletes the note with the given ID.
 func (h *Handler) HandleDeleteNote(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid note ID")
+		return
+	}
 
-	err := h.store.Delete(r.Context(), name)
+	err = h.store.Delete(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "note not found")
 		return
@@ -171,24 +193,15 @@ func (h *Handler) HandleDeleteNote(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// isUniqueViolation checks if an error is a SQLite unique constraint violation.
-func isUniqueViolation(err error) bool {
-	if err == nil {
-		return false
-	}
-	// modernc.org/sqlite returns errors containing "UNIQUE constraint failed".
-	return contains(err.Error(), "UNIQUE constraint failed")
-}
+// HandleDeleteContainerNotes deletes all notes for the given container name.
+func (h *Handler) HandleDeleteContainerNotes(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchString(s, substr)
-}
-
-func searchString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
+	deleted, err := h.store.DeleteByContainer(r.Context(), name)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete container notes")
+		return
 	}
-	return false
+
+	writeJSON(w, http.StatusOK, map[string]int64{"deleted": deleted})
 }

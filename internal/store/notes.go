@@ -25,10 +25,13 @@ func NewNoteStore(db *sql.DB) *NoteStore {
 	return &NoteStore{db: db}
 }
 
+// columnList is the standard SELECT column order for notes.
+const columnList = "id, container_name, container_id, compose_project, compose_service, title, note_content, pinned, tags, created_at, updated_at"
+
 // List returns all notes, optionally filtered by pinned status or search term.
 // Results are ordered by pinned DESC, then updated_at DESC.
 func (s *NoteStore) List(ctx context.Context, pinned *bool, search string) ([]models.Note, error) {
-	query := "SELECT id, container_name, container_id, compose_project, compose_service, note_content, pinned, tags, created_at, updated_at FROM notes"
+	query := "SELECT " + columnList + " FROM notes"
 	var conditions []string
 	var args []any
 
@@ -41,9 +44,9 @@ func (s *NoteStore) List(ctx context.Context, pinned *bool, search string) ([]mo
 		}
 	}
 	if search != "" {
-		conditions = append(conditions, "(container_name LIKE ? OR note_content LIKE ? OR tags LIKE ?)")
+		conditions = append(conditions, "(container_name LIKE ? OR title LIKE ? OR note_content LIKE ? OR tags LIKE ?)")
 		like := "%" + search + "%"
-		args = append(args, like, like, like)
+		args = append(args, like, like, like, like)
 	}
 
 	if len(conditions) > 0 {
@@ -75,18 +78,46 @@ func (s *NoteStore) List(ctx context.Context, pinned *bool, search string) ([]mo
 	return notes, nil
 }
 
-// GetByName returns the note for the given container name, or ErrNotFound.
-func (s *NoteStore) GetByName(ctx context.Context, name string) (*models.Note, error) {
-	row := s.db.QueryRowContext(ctx,
-		"SELECT id, container_name, container_id, compose_project, compose_service, note_content, pinned, tags, created_at, updated_at FROM notes WHERE container_name = ?",
+// ListByContainer returns all notes for the given container name.
+func (s *NoteStore) ListByContainer(ctx context.Context, name string) ([]models.Note, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT "+columnList+" FROM notes WHERE container_name = ? ORDER BY pinned DESC, updated_at DESC",
 		name)
+	if err != nil {
+		return nil, fmt.Errorf("query notes for container %q: %w", name, err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var notes []models.Note
+	for rows.Next() {
+		n, err := scanNote(rows)
+		if err != nil {
+			return nil, err
+		}
+		notes = append(notes, n)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate notes for container %q: %w", name, err)
+	}
+
+	if notes == nil {
+		notes = []models.Note{}
+	}
+	return notes, nil
+}
+
+// GetByID returns the note with the given ID, or ErrNotFound.
+func (s *NoteStore) GetByID(ctx context.Context, id int64) (*models.Note, error) {
+	row := s.db.QueryRowContext(ctx,
+		"SELECT "+columnList+" FROM notes WHERE id = ?",
+		id)
 
 	n, err := scanNoteRow(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get note %q: %w", name, err)
+		return nil, fmt.Errorf("get note %d: %w", id, err)
 	}
 	return &n, nil
 }
@@ -104,9 +135,9 @@ func (s *NoteStore) Create(ctx context.Context, req models.CreateNoteRequest) (*
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	result, err := s.db.ExecContext(ctx,
-		"INSERT INTO notes (container_name, container_id, compose_project, compose_service, note_content, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO notes (container_name, container_id, compose_project, compose_service, title, note_content, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		req.ContainerName, req.ContainerID, req.ComposeProject, req.ComposeService,
-		req.NoteContent, string(tagsJSON), now, now)
+		req.Title, req.NoteContent, string(tagsJSON), now, now)
 	if err != nil {
 		return nil, fmt.Errorf("insert note: %w", err)
 	}
@@ -122,6 +153,7 @@ func (s *NoteStore) Create(ctx context.Context, req models.CreateNoteRequest) (*
 		ContainerID:    req.ContainerID,
 		ComposeProject: req.ComposeProject,
 		ComposeService: req.ComposeService,
+		Title:          req.Title,
 		NoteContent:    req.NoteContent,
 		Pinned:         false,
 		Tags:           tags,
@@ -130,12 +162,16 @@ func (s *NoteStore) Create(ctx context.Context, req models.CreateNoteRequest) (*
 	}, nil
 }
 
-// Update applies partial updates to the note identified by container name.
+// Update applies partial updates to the note identified by ID.
 // Only non-nil fields in the request are changed.
-func (s *NoteStore) Update(ctx context.Context, name string, req models.UpdateNoteRequest) (*models.Note, error) {
+func (s *NoteStore) Update(ctx context.Context, id int64, req models.UpdateNoteRequest) (*models.Note, error) {
 	var setClauses []string
 	var args []any
 
+	if req.Title != nil {
+		setClauses = append(setClauses, "title = ?")
+		args = append(args, *req.Title)
+	}
 	if req.NoteContent != nil {
 		setClauses = append(setClauses, "note_content = ?")
 		args = append(args, *req.NoteContent)
@@ -165,12 +201,12 @@ func (s *NoteStore) Update(ctx context.Context, name string, req models.UpdateNo
 	setClauses = append(setClauses, "updated_at = ?")
 	args = append(args, now)
 
-	args = append(args, name)
-	query := "UPDATE notes SET " + strings.Join(setClauses, ", ") + " WHERE container_name = ?"
+	args = append(args, id)
+	query := "UPDATE notes SET " + strings.Join(setClauses, ", ") + " WHERE id = ?"
 
 	result, err := s.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("update note %q: %w", name, err)
+		return nil, fmt.Errorf("update note %d: %w", id, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -181,15 +217,15 @@ func (s *NoteStore) Update(ctx context.Context, name string, req models.UpdateNo
 		return nil, ErrNotFound
 	}
 
-	return s.GetByName(ctx, name)
+	return s.GetByID(ctx, id)
 }
 
-// Delete removes the note identified by container name.
-func (s *NoteStore) Delete(ctx context.Context, name string) error {
+// Delete removes the note identified by ID.
+func (s *NoteStore) Delete(ctx context.Context, id int64) error {
 	result, err := s.db.ExecContext(ctx,
-		"DELETE FROM notes WHERE container_name = ?", name)
+		"DELETE FROM notes WHERE id = ?", id)
 	if err != nil {
-		return fmt.Errorf("delete note %q: %w", name, err)
+		return fmt.Errorf("delete note %d: %w", id, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -202,6 +238,22 @@ func (s *NoteStore) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
+// DeleteByContainer removes all notes for the given container name.
+// Returns the number of notes deleted.
+func (s *NoteStore) DeleteByContainer(ctx context.Context, name string) (int64, error) {
+	result, err := s.db.ExecContext(ctx,
+		"DELETE FROM notes WHERE container_name = ?", name)
+	if err != nil {
+		return 0, fmt.Errorf("delete notes for container %q: %w", name, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("rows affected: %w", err)
+	}
+	return rowsAffected, nil
+}
+
 // scanNote scans a note from a sql.Rows iterator.
 func scanNote(rows *sql.Rows) (models.Note, error) {
 	var n models.Note
@@ -209,7 +261,7 @@ func scanNote(rows *sql.Rows) (models.Note, error) {
 	var tagsJSON, createdStr, updatedStr string
 
 	err := rows.Scan(&n.ID, &n.ContainerName, &n.ContainerID,
-		&n.ComposeProject, &n.ComposeService, &n.NoteContent,
+		&n.ComposeProject, &n.ComposeService, &n.Title, &n.NoteContent,
 		&pinnedInt, &tagsJSON, &createdStr, &updatedStr)
 	if err != nil {
 		return n, fmt.Errorf("scan note: %w", err)
@@ -236,7 +288,7 @@ func scanNoteRow(row *sql.Row) (models.Note, error) {
 	var tagsJSON, createdStr, updatedStr string
 
 	err := row.Scan(&n.ID, &n.ContainerName, &n.ContainerID,
-		&n.ComposeProject, &n.ComposeService, &n.NoteContent,
+		&n.ComposeProject, &n.ComposeService, &n.Title, &n.NoteContent,
 		&pinnedInt, &tagsJSON, &createdStr, &updatedStr)
 	if err != nil {
 		return n, err
@@ -281,6 +333,11 @@ func (s *NoteStore) ImportAll(ctx context.Context, notes []models.Note) (importe
 			continue
 		}
 
+		// Default title for imports missing one (backward compat).
+		if n.Title == "" {
+			n.Title = "Note"
+		}
+
 		tags := n.Tags
 		if tags == nil {
 			tags = []string{}
@@ -297,10 +354,10 @@ func (s *NoteStore) ImportAll(ctx context.Context, notes []models.Note) (importe
 			pinnedVal = 1
 		}
 
-		// Check if note already exists by container name.
+		// Check if a note with the same container_name and title already exists.
 		var existingID int64
 		row := tx.QueryRowContext(ctx,
-			"SELECT id FROM notes WHERE container_name = ?", n.ContainerName)
+			"SELECT id FROM notes WHERE container_name = ? AND title = ?", n.ContainerName, n.Title)
 		scanErr := row.Scan(&existingID)
 
 		if scanErr == nil {
@@ -310,21 +367,21 @@ func (s *NoteStore) ImportAll(ctx context.Context, notes []models.Note) (importe
 				n.ContainerID, n.ComposeProject, n.ComposeService,
 				n.NoteContent, pinnedVal, string(tagsJSON), now, existingID)
 			if execErr != nil {
-				err = fmt.Errorf("update note %q: %w", n.ContainerName, execErr)
+				err = fmt.Errorf("update note %q/%q: %w", n.ContainerName, n.Title, execErr)
 				return 0, err
 			}
 		} else if errors.Is(scanErr, sql.ErrNoRows) {
 			// Does not exist: insert.
 			_, execErr := tx.ExecContext(ctx,
-				"INSERT INTO notes (container_name, container_id, compose_project, compose_service, note_content, pinned, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				"INSERT INTO notes (container_name, container_id, compose_project, compose_service, title, note_content, pinned, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 				n.ContainerName, n.ContainerID, n.ComposeProject, n.ComposeService,
-				n.NoteContent, pinnedVal, string(tagsJSON), now, now)
+				n.Title, n.NoteContent, pinnedVal, string(tagsJSON), now, now)
 			if execErr != nil {
-				err = fmt.Errorf("insert note %q: %w", n.ContainerName, execErr)
+				err = fmt.Errorf("insert note %q/%q: %w", n.ContainerName, n.Title, execErr)
 				return 0, err
 			}
 		} else {
-			err = fmt.Errorf("check existing note %q: %w", n.ContainerName, scanErr)
+			err = fmt.Errorf("check existing note %q/%q: %w", n.ContainerName, n.Title, scanErr)
 			return 0, err
 		}
 		imported++

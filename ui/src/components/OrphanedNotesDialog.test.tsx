@@ -11,6 +11,7 @@ const mockOrphanedNotes: Note[] = [
     container_id: "abc123",
     compose_project: "",
     compose_service: "",
+    title: "Server Config",
     note_content: "This container was running nginx for the old site configuration",
     pinned: false,
     tags: [],
@@ -23,6 +24,7 @@ const mockOrphanedNotes: Note[] = [
     container_id: "def456",
     compose_project: "",
     compose_service: "",
+    title: "Migration Notes",
     note_content: "Temporary postgres for migration testing",
     pinned: false,
     tags: [],
@@ -38,7 +40,7 @@ describe("OrphanedNotesDialog", () => {
         open={true}
         onClose={vi.fn()}
         orphanedNotes={[]}
-        onDelete={vi.fn()}
+        onDeleteContainer={vi.fn()}
         onDeleteAll={vi.fn()}
       />,
     );
@@ -46,13 +48,13 @@ describe("OrphanedNotesDialog", () => {
     expect(screen.queryByText("Delete All")).not.toBeInTheDocument();
   });
 
-  it("shows orphaned notes with container names", () => {
+  it("shows orphaned notes grouped by container name", () => {
     render(
       <OrphanedNotesDialog
         open={true}
         onClose={vi.fn()}
         orphanedNotes={mockOrphanedNotes}
-        onDelete={vi.fn()}
+        onDeleteContainer={vi.fn()}
         onDeleteAll={vi.fn()}
       />,
     );
@@ -60,41 +62,37 @@ describe("OrphanedNotesDialog", () => {
     expect(screen.getByText("temp-database")).toBeInTheDocument();
   });
 
-  it("shows note content preview and updated date", () => {
+  it("shows note titles in secondary text", () => {
     render(
       <OrphanedNotesDialog
         open={true}
         onClose={vi.fn()}
         orphanedNotes={mockOrphanedNotes}
-        onDelete={vi.fn()}
+        onDeleteContainer={vi.fn()}
         onDeleteAll={vi.fn()}
       />,
     );
-    expect(
-      screen.getByText(/This container was running nginx/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Temporary postgres for migration/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Server Config/)).toBeInTheDocument();
+    expect(screen.getByText(/Migration Notes/)).toBeInTheDocument();
   });
 
-  it("calls onDelete when individual delete button is clicked", async () => {
+  it("calls onDeleteContainer when individual delete button is clicked", async () => {
     const user = userEvent.setup();
-    const onDelete = vi.fn().mockResolvedValue(undefined);
+    const onDeleteContainer = vi.fn().mockResolvedValue(undefined);
     render(
       <OrphanedNotesDialog
         open={true}
         onClose={vi.fn()}
         orphanedNotes={mockOrphanedNotes}
-        onDelete={onDelete}
+        onDeleteContainer={onDeleteContainer}
         onDeleteAll={vi.fn()}
       />,
     );
     const deleteButton = screen.getByLabelText(
-      "Delete note for old-web-server",
+      "Delete notes for old-web-server",
     );
     await user.click(deleteButton);
-    expect(onDelete).toHaveBeenCalledWith("old-web-server");
+    expect(onDeleteContainer).toHaveBeenCalledWith("old-web-server");
   });
 
   it("shows confirmation dialog when Delete All is clicked", async () => {
@@ -104,7 +102,7 @@ describe("OrphanedNotesDialog", () => {
         open={true}
         onClose={vi.fn()}
         orphanedNotes={mockOrphanedNotes}
-        onDelete={vi.fn()}
+        onDeleteContainer={vi.fn()}
         onDeleteAll={vi.fn()}
       />,
     );
@@ -122,12 +120,11 @@ describe("OrphanedNotesDialog", () => {
         open={true}
         onClose={vi.fn()}
         orphanedNotes={mockOrphanedNotes}
-        onDelete={vi.fn()}
+        onDeleteContainer={vi.fn()}
         onDeleteAll={onDeleteAll}
       />,
     );
     await user.click(screen.getByText("Delete All"));
-    // Click "Delete" in the confirmation dialog
     const confirmDialog = screen.getByText("Confirm Deletion").closest<HTMLElement>('[role="dialog"]')!;
     await user.click(within(confirmDialog).getByText("Delete"));
     expect(onDeleteAll).toHaveBeenCalledOnce();
@@ -141,7 +138,7 @@ describe("OrphanedNotesDialog", () => {
         open={true}
         onClose={vi.fn()}
         orphanedNotes={mockOrphanedNotes}
-        onDelete={vi.fn()}
+        onDeleteContainer={vi.fn()}
         onDeleteAll={onDeleteAll}
       />,
     );
@@ -159,7 +156,7 @@ describe("OrphanedNotesDialog", () => {
         open={true}
         onClose={onClose}
         orphanedNotes={mockOrphanedNotes}
-        onDelete={vi.fn()}
+        onDeleteContainer={vi.fn()}
         onDeleteAll={vi.fn()}
       />,
     );
@@ -173,7 +170,7 @@ describe("OrphanedNotesDialog", () => {
         open={false}
         onClose={vi.fn()}
         orphanedNotes={mockOrphanedNotes}
-        onDelete={vi.fn()}
+        onDeleteContainer={vi.fn()}
         onDeleteAll={vi.fn()}
       />,
     );

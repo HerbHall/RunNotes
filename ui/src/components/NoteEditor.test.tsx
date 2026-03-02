@@ -18,6 +18,7 @@ const mockNote: Note = {
   container_id: "abc123",
   compose_project: "",
   compose_service: "",
+  title: "Test Note",
   note_content: "This is a test note",
   pinned: false,
   tags: ["web", "frontend"],
@@ -26,58 +27,58 @@ const mockNote: Note = {
 };
 
 describe("NoteEditor", () => {
-  it("shows 'Add Note' button when note is null", () => {
-    render(
-      <NoteEditor
-        containerName="web-app"
-        container={mockContainer}
-        note={null}
-        onSave={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
-    expect(screen.getByText("No note yet for web-app")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Note" })).toBeInTheDocument();
-  });
-
   it("shows note content when note exists", () => {
     render(
       <NoteEditor
-        containerName="web-app"
-        container={mockContainer}
         note={mockNote}
+        container={mockContainer}
         onSave={vi.fn()}
         onDelete={vi.fn()}
+        onBack={vi.fn()}
       />,
     );
     const textarea = screen.getByPlaceholderText("Write your note here... (supports Markdown)");
     expect(textarea).toHaveValue("This is a test note");
   });
 
+  it("shows note title in editable field", () => {
+    render(
+      <NoteEditor
+        note={mockNote}
+        container={mockContainer}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+    const titleInput = screen.getByPlaceholderText("Note title");
+    expect(titleInput).toHaveValue("Test Note");
+  });
+
   it("shows tags as chips when note exists", () => {
     render(
       <NoteEditor
-        containerName="web-app"
-        container={mockContainer}
         note={mockNote}
+        container={mockContainer}
         onSave={vi.fn()}
         onDelete={vi.fn()}
+        onBack={vi.fn()}
       />,
     );
     expect(screen.getByText("web")).toBeInTheDocument();
     expect(screen.getByText("frontend")).toBeInTheDocument();
   });
 
-  it("calls onSave with updated content", async () => {
+  it("calls onSave with note ID and updated content", async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(
       <NoteEditor
-        containerName="web-app"
-        container={mockContainer}
         note={mockNote}
+        container={mockContainer}
         onSave={onSave}
         onDelete={vi.fn()}
+        onBack={vi.fn()}
       />,
     );
 
@@ -88,7 +89,8 @@ describe("NoteEditor", () => {
     const saveBtn = screen.getByRole("button", { name: "Save" });
     await user.click(saveBtn);
 
-    expect(onSave).toHaveBeenCalledWith("web-app", {
+    expect(onSave).toHaveBeenCalledWith(1, {
+      title: "Test Note",
       note_content: "Updated content",
       pinned: false,
       tags: ["web", "frontend"],
@@ -100,11 +102,11 @@ describe("NoteEditor", () => {
     const user = userEvent.setup();
     render(
       <NoteEditor
-        containerName="web-app"
-        container={mockContainer}
         note={mockNote}
+        container={mockContainer}
         onSave={vi.fn()}
         onDelete={vi.fn()}
+        onBack={vi.fn()}
       />,
     );
 
@@ -117,14 +119,14 @@ describe("NoteEditor", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows Edit and Preview toggle buttons when note exists", () => {
+  it("shows Edit and Preview toggle buttons", () => {
     render(
       <NoteEditor
-        containerName="web-app"
-        container={mockContainer}
         note={mockNote}
+        container={mockContainer}
         onSave={vi.fn()}
         onDelete={vi.fn()}
+        onBack={vi.fn()}
       />,
     );
     expect(screen.getByRole("button", { name: /Edit/i })).toBeInTheDocument();
@@ -135,11 +137,11 @@ describe("NoteEditor", () => {
     const user = userEvent.setup();
     render(
       <NoteEditor
-        containerName="web-app"
-        container={mockContainer}
         note={{ ...mockNote, note_content: "# Hello Markdown" }}
+        container={mockContainer}
         onSave={vi.fn()}
         onDelete={vi.fn()}
+        onBack={vi.fn()}
       />,
     );
 
@@ -154,11 +156,11 @@ describe("NoteEditor", () => {
     const user = userEvent.setup();
     render(
       <NoteEditor
-        containerName="web-app"
-        container={mockContainer}
         note={{ ...mockNote, note_content: "# Hello Markdown" }}
+        container={mockContainer}
         onSave={vi.fn()}
         onDelete={vi.fn()}
+        onBack={vi.fn()}
       />,
     );
 
@@ -171,5 +173,22 @@ describe("NoteEditor", () => {
     await user.click(editBtn);
 
     expect(screen.getByPlaceholderText("Write your note here... (supports Markdown)")).toBeInTheDocument();
+  });
+
+  it("calls onBack when back button is clicked", async () => {
+    const user = userEvent.setup();
+    const onBack = vi.fn();
+    render(
+      <NoteEditor
+        note={mockNote}
+        container={mockContainer}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+        onBack={onBack}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("Back to note list"));
+    expect(onBack).toHaveBeenCalledOnce();
   });
 });

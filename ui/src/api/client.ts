@@ -22,11 +22,18 @@ export async function listNotes(params?: {
   return result as Note[];
 }
 
-export async function getNote(name: string): Promise<Note> {
-  const result = await ddClient.extension.vm?.service?.get(
-    `/notes/${encodeURIComponent(name)}`,
-  );
+export async function getNote(id: number): Promise<Note> {
+  const result = await ddClient.extension.vm?.service?.get(`/notes/${id}`);
   return result as Note;
+}
+
+export async function listContainerNotes(
+  name: string,
+): Promise<Note[]> {
+  const result = await ddClient.extension.vm?.service?.get(
+    `/notes/container/${encodeURIComponent(name)}`,
+  );
+  return result as Note[];
 }
 
 export async function createNote(req: CreateNoteRequest): Promise<Note> {
@@ -35,19 +42,23 @@ export async function createNote(req: CreateNoteRequest): Promise<Note> {
 }
 
 export async function updateNote(
-  name: string,
+  id: number,
   req: UpdateNoteRequest,
 ): Promise<Note> {
   const result = await ddClient.extension.vm?.service?.put(
-    `/notes/${encodeURIComponent(name)}`,
+    `/notes/${id}`,
     req,
   );
   return result as Note;
 }
 
-export async function deleteNote(name: string): Promise<void> {
+export async function deleteNote(id: number): Promise<void> {
+  await ddClient.extension.vm?.service?.delete(`/notes/${id}`);
+}
+
+export async function deleteContainerNotes(name: string): Promise<void> {
   await ddClient.extension.vm?.service?.delete(
-    `/notes/${encodeURIComponent(name)}`,
+    `/notes/container/${encodeURIComponent(name)}`,
   );
 }
 
