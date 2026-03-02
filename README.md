@@ -6,17 +6,23 @@ A Docker Desktop extension for attaching notes and annotations to containers. Ne
 
 Docker Desktop shows container name, image, status, ports, and logs — but there's no built-in way to capture *why* a container exists, what it's for, or what you were doing with it. RunNotes fills that gap.
 
-## Features (Planned)
+## Features
 
-- **Container notes** — Attach text/markdown notes to any container
-- **Name-based persistence** — Notes survive container recreation (keyed by name, not ephemeral ID)
-- **Search** — Find notes across all containers
+- **Container notes** — Attach text notes to any container with tag-based organization
+- **Name-based persistence** — Notes survive `docker-compose down && up` cycles (keyed by name, not ephemeral ID)
+- **Lifecycle management** — Container IDs auto-reconcile when containers are recreated
+- **Search and filter** — Find containers by name, filter by pinned notes
+- **Pin notes** — Pin important notes for quick access
+
+### Planned
+
 - **Orphan management** — View and clean up notes for containers that no longer exist
-- **Export** — Back up your notes as JSON
+- **Markdown support** — Rich text formatting for notes
+- **Export/Import** — Back up your notes as JSON
 
 ## Status
 
-🔨 **Designing & Planning** — Architecture complete, data model defined, phased roadmap active.
+**In Development** — MVP functional with container notes, search, and lifecycle management.
 
 ## Architecture
 
@@ -52,14 +58,14 @@ make install-extension
 
 ```text
 RunNotes/
+├── cmd/backend/         - Go entry point
+├── internal/            - Backend packages (database, handler, models, store)
 ├── docs/                - Architecture and research documentation
-├── ui/                  - React frontend (Docker Desktop extension tab)
-├── backend/             - Backend service (runs in Desktop VM)
+├── ui/                  - React frontend (Vite + MUI + TypeScript)
 ├── metadata.json        - Docker extension metadata
-├── Dockerfile           - Extension image build
+├── docker-compose.yaml  - VM service definition
+├── Dockerfile           - Multi-stage extension image build
 ├── Makefile             - Build automation
-├── CLAUDE.md            - Project context for Claude Code
-├── CONTRIBUTING.md      - Contribution guidelines
 └── README.md            - This file
 ```
 
