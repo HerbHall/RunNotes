@@ -6,7 +6,7 @@ BUILDER=buildx-multi-arch
 INFO_COLOR = \033[0;36m
 RESET = \033[0m
 
-.PHONY: test lint build-backend dev-backend cross-check build-extension install-extension update-extension clean
+.PHONY: test lint build-backend dev-backend cross-check build-extension install-extension update-extension clean fe-install fe-build fe-lint fe-typecheck fe-test
 
 test: ## Run Go tests
 	go test ./...
@@ -46,3 +46,19 @@ push-extension:
 
 clean:
 	docker extension rm $(IMAGE) || true
+
+## Frontend
+fe-install: ## Install frontend dependencies
+	cd ui && npm ci
+
+fe-build: ## Build frontend
+	cd ui && npm run build
+
+fe-lint: ## Lint frontend
+	cd ui && npm run lint
+
+fe-typecheck: ## TypeScript type check
+	cd ui && npx tsc --noEmit
+
+fe-test: ## Run frontend tests
+	cd ui && npm run test

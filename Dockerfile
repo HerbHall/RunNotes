@@ -1,9 +1,17 @@
 # syntax=docker/dockerfile:1
 
 # RunNotes Docker Desktop Extension
-# Multi-stage build: backend + frontend
+# Multi-stage build: frontend + backend
 
-# Stage 1: Build Go backend
+# Stage 1: Build React UI
+FROM --platform=$BUILDPLATFORM node:22-alpine AS ui-builder
+WORKDIR /app
+COPY ui/package.json ui/package-lock.json* ./
+RUN npm ci
+COPY ui/ ./
+RUN npm run build
+
+# Stage 2: Build Go backend
 FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
 ARG TARGETARCH
 WORKDIR /app
@@ -13,7 +21,7 @@ COPY cmd/ cmd/
 COPY internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o bin/backend ./cmd/backend
 
-# Stage 2: Final extension image
+# Stage 3: Final extension image
 FROM alpine:3.21
 LABEL org.opencontainers.image.title="RunNotes" \
       org.opencontainers.image.description="Attach notes and annotations to your Docker containers" \
@@ -29,7 +37,6 @@ COPY --from=builder /app/bin/backend /backend
 COPY docker-compose.yaml .
 COPY metadata.json .
 COPY docker.svg .
-
-COPY ui ui
+COPY --from=ui-builder /app/build ui
 
 CMD ["/backend", "-socket", "/run/guest-services/backend.sock"]
