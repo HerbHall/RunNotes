@@ -50,7 +50,7 @@ describe("NoteEditor", () => {
         onDelete={vi.fn()}
       />,
     );
-    const textarea = screen.getByPlaceholderText("Write your note here...");
+    const textarea = screen.getByPlaceholderText("Write your note here... (supports Markdown)");
     expect(textarea).toHaveValue("This is a test note");
   });
 
@@ -81,7 +81,7 @@ describe("NoteEditor", () => {
       />,
     );
 
-    const textarea = screen.getByPlaceholderText("Write your note here...");
+    const textarea = screen.getByPlaceholderText("Write your note here... (supports Markdown)");
     await user.clear(textarea);
     await user.type(textarea, "Updated content");
 
@@ -115,5 +115,61 @@ describe("NoteEditor", () => {
     expect(
       screen.getByText(/Are you sure you want to delete/),
     ).toBeInTheDocument();
+  });
+
+  it("shows Edit and Preview toggle buttons when note exists", () => {
+    render(
+      <NoteEditor
+        containerName="web-app"
+        container={mockContainer}
+        note={mockNote}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Edit/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Preview/i })).toBeInTheDocument();
+  });
+
+  it("switches to preview mode and hides the text field", async () => {
+    const user = userEvent.setup();
+    render(
+      <NoteEditor
+        containerName="web-app"
+        container={mockContainer}
+        note={{ ...mockNote, note_content: "# Hello Markdown" }}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const previewBtn = screen.getByRole("button", { name: /Preview/i });
+    await user.click(previewBtn);
+
+    expect(screen.queryByPlaceholderText("Write your note here... (supports Markdown)")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Hello Markdown");
+  });
+
+  it("switches back to edit mode from preview", async () => {
+    const user = userEvent.setup();
+    render(
+      <NoteEditor
+        containerName="web-app"
+        container={mockContainer}
+        note={{ ...mockNote, note_content: "# Hello Markdown" }}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const previewBtn = screen.getByRole("button", { name: /Preview/i });
+    await user.click(previewBtn);
+
+    expect(screen.queryByPlaceholderText("Write your note here... (supports Markdown)")).not.toBeInTheDocument();
+
+    const editBtn = screen.getByRole("button", { name: /Edit/i });
+    await user.click(editBtn);
+
+    expect(screen.getByPlaceholderText("Write your note here... (supports Markdown)")).toBeInTheDocument();
   });
 });
