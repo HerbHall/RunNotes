@@ -8,12 +8,15 @@ describe("App", () => {
     expect(screen.getByText("RunNotes")).toBeInTheDocument();
   });
 
-  it("renders the description", () => {
+  it("shows loading state initially", () => {
+    render(<App />);
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+  });
+
+  it("shows placeholder when no container is selected", () => {
     render(<App />);
     expect(
-      screen.getByText(
-        "Attach notes and annotations to your Docker containers.",
-      ),
+      screen.getByText("Select a container to view or add notes"),
     ).toBeInTheDocument();
   });
 });
