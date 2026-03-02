@@ -1,1 +1,18 @@
-²ø1šYì
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Container (back, gray) -->
+  <rect x="2" y="6" width="14" height="16" rx="1.5" fill="#78909C" opacity="0.85"/>
+  <rect x="4" y="8" width="3" height="2" rx="0.5" fill="#546E7A"/>
+  <rect x="4" y="11.5" width="3" height="2" rx="0.5" fill="#546E7A"/>
+  <rect x="4" y="15" width="3" height="2" rx="0.5" fill="#546E7A"/>
+  <!-- Notepad (front, green) -->
+  <rect x="9" y="2" width="13" height="16" rx="1.5" fill="#4CAF50"/>
+  <rect x="9" y="2" width="3" height="16" rx="0" fill="#388E3C"/>
+  <!-- Notepad lines -->
+  <line x1="14" y1="6.5" x2="20" y2="6.5" stroke="#E8F5E9" stroke-width="0.8" stroke-linecap="round"/>
+  <line x1="14" y1="9" x2="20" y2="9" stroke="#E8F5E9" stroke-width="0.8" stroke-linecap="round"/>
+  <line x1="14" y1="11.5" x2="18" y2="11.5" stroke="#E8F5E9" stroke-width="0.8" stroke-linecap="round"/>
+  <line x1="14" y1="14" x2="19" y2="14" stroke="#E8F5E9" stroke-width="0.8" stroke-linecap="round"/>
+  <!-- Pencil accent -->
+  <line x1="19.5" y1="16" x2="21.5" y2="18" stroke="#FFC107" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="21.8" cy="18.3" r="0.5" fill="#FFC107"/>
+</svg>
