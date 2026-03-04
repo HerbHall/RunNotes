@@ -50,7 +50,7 @@ func (s *NoteStore) List(ctx context.Context, pinned *bool, search string) ([]mo
 	}
 
 	if len(conditions) > 0 {
-		query += " WHERE " + strings.Join(conditions, " AND ")
+		query += " WHERE " + strings.Join(conditions, " AND ") //nolint:gosec // G202: conditions are static strings, values are parameterized
 	}
 	query += " ORDER BY pinned DESC, updated_at DESC"
 
@@ -202,7 +202,7 @@ func (s *NoteStore) Update(ctx context.Context, id int64, req models.UpdateNoteR
 	args = append(args, now)
 
 	args = append(args, id)
-	query := "UPDATE notes SET " + strings.Join(setClauses, ", ") + " WHERE id = ?"
+	query := "UPDATE notes SET " + strings.Join(setClauses, ", ") + " WHERE id = ?" //nolint:gosec // G202: setClauses are static strings, values are parameterized
 
 	result, err := s.db.ExecContext(ctx, query, args...)
 	if err != nil {
@@ -360,7 +360,8 @@ func (s *NoteStore) ImportAll(ctx context.Context, notes []models.Note) (importe
 			"SELECT id FROM notes WHERE container_name = ? AND title = ?", n.ContainerName, n.Title)
 		scanErr := row.Scan(&existingID)
 
-		if scanErr == nil {
+		switch {
+		case scanErr == nil:
 			// Exists: update.
 			_, execErr := tx.ExecContext(ctx,
 				"UPDATE notes SET container_id = ?, compose_project = ?, compose_service = ?, note_content = ?, pinned = ?, tags = ?, updated_at = ? WHERE id = ?",
@@ -370,7 +371,7 @@ func (s *NoteStore) ImportAll(ctx context.Context, notes []models.Note) (importe
 				err = fmt.Errorf("update note %q/%q: %w", n.ContainerName, n.Title, execErr)
 				return 0, err
 			}
-		} else if errors.Is(scanErr, sql.ErrNoRows) {
+		case errors.Is(scanErr, sql.ErrNoRows):
 			// Does not exist: insert.
 			_, execErr := tx.ExecContext(ctx,
 				"INSERT INTO notes (container_name, container_id, compose_project, compose_service, title, note_content, pinned, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -380,7 +381,7 @@ func (s *NoteStore) ImportAll(ctx context.Context, notes []models.Note) (importe
 				err = fmt.Errorf("insert note %q/%q: %w", n.ContainerName, n.Title, execErr)
 				return 0, err
 			}
-		} else {
+		default:
 			err = fmt.Errorf("check existing note %q/%q: %w", n.ContainerName, n.Title, scanErr)
 			return 0, err
 		}

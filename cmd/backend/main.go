@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -17,6 +18,12 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	socketPath := flag.String("socket", "/run/guest-services/backend.sock", "Unix socket path")
 	dbPath := flag.String("db", "/data/runnotes.db", "SQLite database path")
 	flag.Parse()
@@ -32,7 +39,7 @@ func main() {
 	log.Printf("opening database at %s", *dbPath)
 	db, err := database.Open(*dbPath)
 	if err != nil {
-		log.Fatalf("open database: %v", err)
+		return fmt.Errorf("open database: %w", err)
 	}
 	defer func() { _ = db.Close() }()
 
@@ -52,16 +59,16 @@ func main() {
 	var ln net.Listener
 	if devMode {
 		addr := ":3001"
-		ln, err = net.Listen("tcp", addr)
+		ln, err = net.Listen("tcp", addr) //nolint:gosec // G102: dev-mode only, not exposed in production
 		if err != nil {
-			log.Fatalf("listen tcp %s: %v", addr, err)
+			return fmt.Errorf("listen tcp %s: %w", addr, err)
 		}
 		log.Printf("DEV MODE: listening on http://localhost%s", addr)
 	} else {
 		_ = os.RemoveAll(*socketPath)
 		ln, err = net.Listen("unix", *socketPath)
 		if err != nil {
-			log.Fatalf("listen unix %s: %v", *socketPath, err)
+			return fmt.Errorf("listen unix %s: %w", *socketPath, err)
 		}
 		log.Printf("listening on unix socket %s", *socketPath)
 	}
@@ -71,8 +78,8 @@ func main() {
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("serve: %v", err)
+		if serveErr := srv.Serve(ln); serveErr != nil && serveErr != http.ErrServerClosed {
+			log.Printf("serve: %v", serveErr)
 		}
 	}()
 
@@ -82,7 +89,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("shutdown: %v", err)
+		return fmt.Errorf("shutdown: %w", err)
 	}
 	log.Println("stopped")
+	return nil
 }
