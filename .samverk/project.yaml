@@ -1,0 +1,7 @@
+name: runnotes
+forge: github
+forge_url: https://github.com/HerbHall/RunNotes
+phase: delivery
+registered: 2026-02-25
+labels_synced: true
+autonomy_overrides: {}
