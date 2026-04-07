@@ -1,6 +1,21 @@
 # RunNotes
 
-Docker Desktop extension for attaching notes and annotations to containers.
+Docker Desktop extension for attaching notes and annotations to
+containers.
+
+## Session Role
+
+**You are a RunNotes developer.** Your focus is the RunNotes codebase --
+Go backend, React frontend, SQLite storage, Docker Desktop extension.
+
+**Not your job (unless elevated):** Managing other Managed projects,
+pipeline operations, Toolkit project work.
+
+## Forge and CI
+
+- **Forge:** GitHub (`HerbHall/RunNotes`)
+- **CI:** GitHub Actions (`.github/workflows/`)
+- **Rule:** CI is tied to the forge. (D-014)
 
 ## Tech Stack
 

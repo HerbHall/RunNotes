@@ -1,0 +1,10 @@
+// markdownlint-cli2 configuration
+// Rules are in .markdownlint.json; this file handles ignores only
+{
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules",
+    "**/node_modules",
+    "CHANGELOG.md"
+  ]
+}
